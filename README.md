@@ -13,8 +13,10 @@ Empresas frequentemente possuem processos internos (reimpressão de documentos, 
 ## 🧱 Status atual do projeto
 
 - [x] Modelagem e criação do banco de dados (MySQL)
-- [ ] Backend (API REST com Python/FastAPI)
-- [ ] Autenticação e autorização (admin vs. membro)
+- [x] Estrutura de pastas do backend (models, schemas, routers, core)
+- [x] Autenticação (registro e login com JWT)
+- [ ] Endpoints de workspaces, tabs e tutorials
+- [ ] Rotas protegidas (autorização por papel: admin vs. membro)
 - [ ] Frontend (React)
 - [ ] Upload e armazenamento de imagens
 
@@ -61,5 +63,17 @@ O script já contém `CREATE DATABASE IF NOT EXISTS` e `USE`, portanto cria o ba
 - Modelar endpoints da API
 
 ---
+
+## ⚙️ Como executar o backend
+
+**Pré-requisitos:** Python 3.10+ e o banco de dados já criado (ver seção acima).
+
+1. Entre na pasta `backend`
+2. Crie e ative o ambiente virtual: (python -m venv venv
+venv\Scripts\activate)
+3. Instale as dependências: (pip install -r requirements.txt
+4. Crie um arquivo `.env` na pasta `backend` com as variáveis de conexão (veja `.env` de exemplo, se disponibilizado)
+5. Suba o servidor: uvicorn app.main:app --reload
+6. Acesse a documentação interativa em `http://127.0.0.1:8000/docs`
 
 Projeto pessoal em desenvolvimento por [Gabriel].
