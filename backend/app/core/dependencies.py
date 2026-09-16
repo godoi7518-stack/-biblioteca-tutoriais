@@ -32,3 +32,32 @@ def get_current_user(
         raise credentials_exception
 
     return user
+
+from app.models.membership import Membership
+
+
+def get_workspace_membership(
+    workspace_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> Membership:
+    membership = (
+        db.query(Membership)
+        .filter(Membership.workspace_id == workspace_id, Membership.user_id == current_user.id)
+        .first()
+    )
+    if membership is None:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Você não pertence a este workspace",
+        )
+    return membership
+
+
+def require_admin(membership: Membership = Depends(get_workspace_membership)) -> Membership:
+    if membership.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Apenas administradores podem realizar esta ação",
+        )
+    return membership
