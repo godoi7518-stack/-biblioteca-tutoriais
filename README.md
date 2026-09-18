@@ -15,8 +15,8 @@ Empresas frequentemente possuem processos internos (reimpressão de documentos, 
 - [x] Modelagem e criação do banco de dados (MySQL)
 - [x] Estrutura de pastas do backend (models, schemas, routers, core)
 - [x] Autenticação (registro e login com JWT)
-- [ ] Endpoints de workspaces, tabs e tutorials
-- [ ] Rotas protegidas (autorização por papel: admin vs. membro)
+- [x] Endpoints de workspaces, tabs e tutorials
+- [x] Rotas protegidas (autorização por papel: admin vs. membro)
 - [ ] Frontend (React)
 - [ ] Upload e armazenamento de imagens
 
