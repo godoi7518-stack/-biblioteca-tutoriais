@@ -9,3 +9,5 @@ venv/
 
 # VS Code
 .vscode/
+
+static/uploads/
