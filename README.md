@@ -15,12 +15,12 @@ Empresas frequentemente possuem processos internos (reimpressão de documentos, 
 - [x] Modelagem e criação do banco de dados (MySQL)
 - [x] Estrutura de pastas do backend (models, schemas, routers, core)
 - [x] Autenticação (registro e login com JWT)
-- [ ] Endpoints de workspaces, tabs e tutorials
-- [ ] Rotas protegidas (autorização por papel: admin vs. membro)
+- [x] Endpoints de workspaces, tabs e tutorials
+- [x] Rotas protegidas (autorização por papel: admin vs. membro)
 - [ ] Frontend (React)
 - [ ] Upload e armazenamento de imagens
 
-> O projeto está em desenvolvimento incremental. Esta etapa cobre exclusivamente a camada de dados.
+> O projeto está em desenvolvimento incremental. Atualmente, resta as etapas de frontend e upload de imagens.
 
 ## 🗂️ Estrutura do repositório
 
