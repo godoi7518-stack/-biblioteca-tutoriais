@@ -11,7 +11,7 @@ class TutorialBase(BaseModel):
 
 
 class TutorialCreate(TutorialBase):
-    tab_id: int
+    pass
 
 
 class TutorialResponse(TutorialBase):
