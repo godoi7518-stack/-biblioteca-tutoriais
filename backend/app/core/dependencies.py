@@ -1,7 +1,8 @@
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
-
+from app.models.membership import Membership, MembershipRole
+from app.models.membership import Membership
 from app.database import get_db
 from app.core.security import decode_access_token
 from app.models.user import User
@@ -33,11 +34,10 @@ def get_current_user(
 
     return user
 
-from app.models.membership import Membership
 
 
 def get_workspace_membership(
-    workspace_id: int,
+    workspace_id: int = Path(..., gt=0),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> Membership:
@@ -55,7 +55,7 @@ def get_workspace_membership(
 
 
 def require_admin(membership: Membership = Depends(get_workspace_membership)) -> Membership:
-    if membership.role != "admin":
+    if membership.role != MembershipRole.ADMIN:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Apenas administradores podem realizar esta ação",

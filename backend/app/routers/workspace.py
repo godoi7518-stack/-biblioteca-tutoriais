@@ -1,12 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.models.membership import Membership
 from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse
 from app.schemas.membership import MembershipInvite, MembershipResponse
+from app.models.membership import Membership, MembershipRole
 from app.core.dependencies import get_current_user, get_workspace_membership, require_admin
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
@@ -23,7 +23,7 @@ def create_workspace(
     db.commit()
     db.refresh(workspace)
 
-    membership = Membership(user_id=current_user.id, workspace_id=workspace.id, role="admin")
+    membership = Membership(user_id=current_user.id, workspace_id=workspace.id, role=MembershipRole.ADMIN)
     db.add(membership)
     db.commit()
 
@@ -45,7 +45,7 @@ def list_my_workspaces(
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
 def get_workspace(
-    workspace_id: int,
+    workspace_id: int = Path(..., gt=0),
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
@@ -57,8 +57,8 @@ def get_workspace(
 
 @router.post("/{workspace_id}/members", response_model=MembershipResponse)
 def invite_member(
-    workspace_id: int,
     data: MembershipInvite,
+    workspace_id: int = Path(..., gt=0),
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
@@ -83,7 +83,7 @@ def invite_member(
 
 @router.get("/{workspace_id}/members", response_model=list[MembershipResponse])
 def list_members(
-    workspace_id: int,
+    workspace_id: int = Path(..., gt=0),
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):

@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Text, Enum, TIMESTAMP, ForeignKey, func
 
+
 from app.database import Base
 
 
