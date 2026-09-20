@@ -42,3 +42,16 @@ class TutorialStepResponse(TutorialStepBase):
 
     class Config:
         from_attributes = True
+
+class TutorialSearchResult(BaseModel):
+    id: int
+    title: str
+    summary: str | None = None
+    content_type: Literal["simple", "structured"]
+    tab_id: int
+    tab_name: str
+    workspace_id: int
+    workspace_name: str
+
+    class Config:
+        from_attributes = True

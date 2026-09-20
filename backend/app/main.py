@@ -2,7 +2,8 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import auth, workspace, tabs, tutorials, tutorial_images
+
+from app.routers import auth, workspace, tabs, tutorials, tutorial_images, search
 
 os.makedirs("static/uploads", exist_ok=True)
 
@@ -23,6 +24,7 @@ app.include_router(workspace.router)
 app.include_router(tabs.router)
 app.include_router(tutorials.router)
 app.include_router(tutorial_images.router)
+app.include_router(search.router)
 
 
 @app.get("/")

@@ -60,13 +60,19 @@ export default function App() {
       {!isSearching && <Breadcrumb items={crumbs} onNavigate={navigate} />}
 
       {isSearching ? (
-        <SearchResultsPage
+              <SearchResultsPage
           query={searchQuery}
           onOpenTutorial={(t) => {
             setSearchQuery("");
-            setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId });
+            setView({
+              page: "tutorial",
+              tutorial: t,
+              workspace: { id: t.workspace_id, name: t.workspace_name },
+              tabId: t.tab_id,
+            });
           }}
         />
+
       ) : view.page === "workspaces" ? (
         <WorkspacesPage user={user} onOpen={(ws) => setView({ page: "tabs", workspace: ws })} />
       ) : view.page === "tabs" ? (
@@ -77,9 +83,22 @@ export default function App() {
           onSelectTab={(tabId) => setView({ ...view, tabId })}
           onOpenTutorial={(t) => setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId })}
         />
-      ) : view.page === "tutorial" ? (
-        <TutorialDetailPage tutorial={view.tutorial} />
+           ) : view.page === "tutorial" ? (
+        <TutorialDetailPage
+          workspace={view.workspace}
+          tabId={view.tabId}
+          tutorialId={view.tutorial.id}
+          initialTutorial={view.tutorial}
+        />
       ) : null}
     </div>
   );
+}
+
+export async function getTutorial(workspaceId, tabId, tutorialId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`);
+}
+
+export async function listSteps(workspaceId, tabId, tutorialId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/steps`);
 }

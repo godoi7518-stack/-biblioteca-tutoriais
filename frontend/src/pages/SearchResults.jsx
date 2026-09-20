@@ -1,8 +1,27 @@
-import { useMemo } from "react";
-import { searchTutorials } from "../utils/helpers";
+import { useState, useEffect } from "react";
+import { searchTutorials } from "../services/api";
 
 export default function SearchResultsPage({ query, onOpenTutorial }) {
-  const results = useMemo(() => searchTutorials(query), [query]);
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (trimmed.length < 2) {
+      setResults([]);
+      return;
+    }
+
+    setLoading(true);
+    const timer = setTimeout(() => {
+      searchTutorials(trimmed)
+        .then(setResults)
+        .catch(() => setResults([]))
+        .finally(() => setLoading(false));
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [query]);
 
   return (
     <div className="content">
@@ -10,18 +29,25 @@ export default function SearchResultsPage({ query, onOpenTutorial }) {
         <h1>Resultados da busca</h1>
       </div>
       <p className="search-results-note">
-        {results.length} resultado(s) para "{query}"
+        {loading ? "Buscando…" : `${results.length} resultado(s) para "${query}"`}
       </p>
       <div className="tut-list">
-        {results.length === 0 && <div className="empty-state">Nada encontrado. Tente outro termo.</div>}
+        {!loading && results.length === 0 && (
+          <div className="empty-state">Nada encontrado. Tente outro termo.</div>
+        )}
         {results.map((t) => (
           <button className="tut-row" key={t.id} onClick={() => onOpenTutorial(t)}>
-            <div className={"tut-icon " + t.type}>{t.type === "structured" ? "≡" : "T"}</div>
+            <div className={"tut-icon " + t.content_type}>
+              {t.content_type === "structured" ? "≡" : "T"}
+            </div>
             <div className="tut-main">
               <div className="tut-title">{t.title}</div>
-              <div className="tut-summary">{t.summary}</div>
+              <div className="tut-summary">
+                {t.workspace_name} / {t.tab_name}
+                {t.summary ? " — " + t.summary : ""}
+              </div>
             </div>
-            <span className="tut-tag">{t.type === "structured" ? "PASSOS" : "TEXTO"}</span>
+            <span className="tut-tag">{t.content_type === "structured" ? "PASSOS" : "TEXTO"}</span>
           </button>
         ))}
       </div>

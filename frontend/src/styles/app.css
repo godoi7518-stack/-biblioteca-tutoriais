@@ -235,3 +235,41 @@ input { font-family: inherit; }
 .accordion-header .chevron { transition: transform 0.15s ease; flex-shrink: 0; color: var(--text-muted); }
 .accordion-header .chevron.open { transform: rotate(180deg); }
 .accordion-body { padding: 0 16px 16px 54px; font-size: 13px; color: var(--text); }
+
+/* ---------- Galeria de imagens ---------- */
+.image-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin-top: 4px; }
+.image-thumb { position: relative; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); }
+.image-thumb img { width: 100%; height: 110px; object-fit: cover; display: block; }
+.image-thumb-remove {
+  position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.6); color: #fff; border: none; font-size: 14px; line-height: 1;
+  display: flex; align-items: center; justify-content: center;
+}
+.image-thumb-remove:hover { background: var(--critical); }
+.image-thumb-caption { padding: 6px 8px; font-size: 11px; color: var(--subtitle-color); }
+
+/* ---------- Lightbox ---------- */
+.lightbox-overlay {
+  position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  z-index: 60; padding: 24px;
+}
+.lightbox-overlay img { max-width: 90vw; max-height: 80vh; object-fit: contain; border-radius: var(--radius); }
+.lightbox-caption { color: #fff; margin-top: 12px; font-size: 13px; }
+.lightbox-close {
+  position: fixed; top: 16px; right: 20px; background: rgba(255, 255, 255, 0.15); color: #fff;
+  border: none; width: 32px; height: 32px; border-radius: 50%; font-size: 18px; line-height: 1;
+}
+.lightbox-close:hover { background: rgba(255, 255, 255, 0.3); }
+.image-thumb-open { display: block; width: 100%; padding: 0; border: none; background: none; cursor: pointer; }
+
+.lightbox-nav {
+  position: fixed; top: 50%; transform: translateY(-50%);
+  background: rgba(255, 255, 255, 0.12); color: #fff; border: none;
+  width: 44px; height: 44px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+}
+.lightbox-nav:hover { background: rgba(255, 255, 255, 0.25); }
+.lightbox-nav-prev { left: 20px; }
+.lightbox-nav-next { right: 20px; }
+.lightbox-counter { color: #fff; opacity: 0.7; margin-top: 8px; font-size: 12px; }

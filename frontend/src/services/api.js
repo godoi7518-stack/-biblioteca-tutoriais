@@ -1,4 +1,5 @@
-const API_URL = "http://127.0.0.1:8000";
+export const API_URL = "http://127.0.0.1:8000";
+
 
 function getToken() {
   return localStorage.getItem("bt_token");
@@ -95,5 +96,37 @@ export async function createTutorial(workspaceId, tabId, data) {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
+  });
+}
+export async function getTutorial(workspaceId, tabId, tutorialId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`);
+}
+
+export async function listSteps(workspaceId, tabId, tutorialId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/steps`);
+}
+
+export async function searchTutorials(q) {
+  return apiFetch(`/search?q=${encodeURIComponent(q)}`);
+}
+
+export async function listImages(workspaceId, tabId, tutorialId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/images`);
+}
+
+export async function uploadImage(workspaceId, tabId, tutorialId, file, caption) {
+  const formData = new FormData();
+  formData.append("file", file);
+  if (caption) formData.append("caption", caption);
+
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/images`, {
+    method: "POST",
+    body: formData,
+  });
+}
+
+export async function deleteImage(workspaceId, tabId, tutorialId, imageId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/images/${imageId}`, {
+    method: "DELETE",
   });
 }
