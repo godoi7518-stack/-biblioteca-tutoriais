@@ -11,3 +11,6 @@ venv/
 .vscode/
 
 static/uploads/
+
+node_modules/
+dist/

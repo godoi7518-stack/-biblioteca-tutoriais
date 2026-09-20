@@ -1,19 +1,3 @@
-from pydantic import BaseModel
-
-
-class Token(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
-
-
-class TokenData(BaseModel):
-    user_id: int | None = None
-
-
-class LoginRequest(BaseModel):
-    email: str
-    password: str
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -23,6 +7,7 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserResponse
 from app.schemas.auth import Token
 from app.core.security import hash_password, verify_password, create_access_token
+from app.core.dependencies import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -60,3 +45,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 
     access_token = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserResponse)
+def get_me(current_user: User = Depends(get_current_user)):
+    return current_user

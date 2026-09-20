@@ -1,12 +1,20 @@
 import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-
+from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth, workspace, tabs, tutorials, tutorial_images
 
 os.makedirs("static/uploads", exist_ok=True)
 
 app = FastAPI(title="Biblioteca de Tutoriais")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
