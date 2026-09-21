@@ -5,6 +5,12 @@ export default function SearchResultsPage({ query, onOpenTutorial }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Debounce de 300ms: espera o usuário parar de digitar antes de buscar,
+   * em vez de disparar uma requisição a cada tecla. O cleanup do
+   * useEffect (return () => clearTimeout) cancela o timer anterior toda
+   * vez que query muda — é isso que faz o debounce funcionar.
+   */
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
@@ -42,6 +48,8 @@ export default function SearchResultsPage({ query, onOpenTutorial }) {
             </div>
             <div className="tut-main">
               <div className="tut-title">{t.title}</div>
+              {/* A busca cruza vários workspaces, então mostra de onde
+                  cada resultado veio (workspace/tab), não só o resumo. */}
               <div className="tut-summary">
                 {t.workspace_name} / {t.tab_name}
                 {t.summary ? " — " + t.summary : ""}

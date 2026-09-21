@@ -7,6 +7,12 @@ export default function Login({ onLogin }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  /**
+   * Login em dois passos: primeiro troca email/senha por um token (e o
+   * salva), depois usa esse token pra buscar os dados reais do usuário via
+   * GET /auth/me. O backend autentica por e-mail, não por um "username"
+   * separado — não existe esse campo no model User.
+   */
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");

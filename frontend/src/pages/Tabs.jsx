@@ -10,6 +10,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   const [error, setError] = useState("");
   const [creatingTab, setCreatingTab] = useState(false);
 
+  // Estado do modal de criação de tutorial (ver o bloco no final do JSX).
   const [showForm, setShowForm] = useState(false);
   const [formTitle, setFormTitle] = useState("");
   const [formSummary, setFormSummary] = useState("");
@@ -17,8 +18,13 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   const [formError, setFormError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  // currentTabId precisa existir antes dos useEffect abaixo, já que o
+  // segundo depende dele no array de dependências.
   const currentTabId = activeTabId || tabs[0]?.id;
 
+  // Dois efeitos separados: um reage à troca de workspace (busca as tabs),
+  // outro à troca de tab selecionada (busca só os tutoriais dessa tab) —
+  // evita rebuscar tutoriais toda vez que a lista de tabs recarrega.
   useEffect(() => {
     loadTabs();
   }, [workspace.id]);
@@ -68,6 +74,9 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
     setShowForm(true);
   }
 
+  // content_type é fixado em "simple": criação de tutoriais "structured"
+  // (com passos reais) ainda não tem tela própria — decisão deliberada de
+  // adiar essa funcionalidade.
   async function handleCreateTutorial(e) {
     e.preventDefault();
     setFormError("");
@@ -163,6 +172,9 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
           ))}
       </div>
 
+      {/* Modal de criação de tutorial: overlay fixo cobrindo a tela, com
+          stopPropagation no card interno para o clique dentro do form não
+          "vazar" pro fundo e fechar o modal sem querer. */}
       {showForm && (
         <div
           style={{

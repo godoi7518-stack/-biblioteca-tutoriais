@@ -22,6 +22,8 @@ export default function WorkspacesPage({ user, onOpen }) {
       .finally(() => setLoading(false));
   }
 
+  // Usa window.prompt() por simplicidade — funcional, mas destoa do resto
+  // da UI. Trocar por um modal de verdade é melhoria de polimento pendente.
   async function handleCreate() {
     const name = window.prompt("Nome do novo workspace:");
     if (!name) return;
@@ -59,6 +61,8 @@ export default function WorkspacesPage({ user, onOpen }) {
         <h1>
           Workspaces<span className="count">{workspaces.length}</span>
         </h1>
+        {/* Qualquer usuário logado pode criar workspace no backend — sem
+            checagem de papel aqui, porque quem cria vira admin dele. */}
         <button className="btn-new" onClick={handleCreate} disabled={creating}>
           <PlusIcon /> {creating ? "Criando…" : "Novo workspace"}
         </button>

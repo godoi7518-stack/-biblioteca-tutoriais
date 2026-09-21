@@ -1,3 +1,5 @@
+"""Rotas de tabs (categorias/abas de conteúdo dentro de um workspace)."""
+
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
@@ -17,6 +19,7 @@ def create_tab(
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """Cria uma nova tab dentro do workspace. Exige ser admin do workspace."""
     tab = Tab(workspace_id=workspace_id, name=data.name, description=data.description, position=data.position)
     db.add(tab)
     db.commit()
@@ -30,6 +33,7 @@ def list_tabs(
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
+    """Lista as tabs do workspace, ordenadas por position. Exige ser membro do workspace."""
     return (
         db.query(Tab)
         .filter(Tab.workspace_id == workspace_id)
@@ -39,6 +43,13 @@ def list_tabs(
 
 
 def get_tab_or_404(workspace_id: int, tab_id: int, db: Session) -> Tab:
+    """Busca uma tab garantindo que ela pertence ao workspace informado.
+
+    Função auxiliar reaproveitada pelos routers de tutorials e
+    tutorial_images (não é uma rota). Filtrar por workspace_id + tab_id
+    juntos impede que alguém acesse uma tab de outro workspace só
+    adivinhando o ID. Levanta 404 se não encontrar.
+    """
     tab = db.query(Tab).filter(Tab.id == tab_id, Tab.workspace_id == workspace_id).first()
     if tab is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Aba não encontrada")
@@ -52,6 +63,7 @@ def get_tab(
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
+    """Retorna uma tab específica. Exige ser membro do workspace."""
     return get_tab_or_404(workspace_id, tab_id, db)
 
 
@@ -63,6 +75,7 @@ def update_tab(
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """Atualiza nome/descrição/posição de uma tab. Exige ser admin do workspace."""
     tab = get_tab_or_404(workspace_id, tab_id, db)
     tab.name = data.name
     tab.description = data.description
@@ -79,6 +92,7 @@ def delete_tab(
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """Apaga uma tab e, em cascata via FK, seus tutoriais. Exige ser admin do workspace."""
     tab = get_tab_or_404(workspace_id, tab_id, db)
     db.delete(tab)
     db.commit()

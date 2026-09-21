@@ -1,3 +1,11 @@
+"""Rotas de upload, listagem e remoção de imagens de tutorial.
+
+Imagens são salvas em disco (static/uploads/tutorials/{tutorial_id}/,
+servidas via StaticFiles em /static) e registradas no banco com a URL
+relativa. O campo step_id é opcional: uma imagem pode estar associada a um
+passo específico de um tutorial "structured" ou só ao tutorial em geral.
+"""
+
 import os
 import uuid
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Path
@@ -32,6 +40,17 @@ async def upload_image(
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """Recebe um arquivo de imagem (multipart/form-data) e associa ao tutorial.
+
+    Exige ser admin do workspace. Valida content_type (apenas JPEG/PNG/WEBP)
+    e tamanho (máx. 5MB) antes de gravar. O nome do arquivo salvo é um uuid4
+    aleatório, não o nome original — evita colisão entre uploads e evita
+    path traversal via nome de arquivo malicioso.
+
+    Se o INSERT no banco falhar depois do arquivo já gravado (ex.: step_id
+    de um passo inexistente), o arquivo é removido do disco antes de
+    relançar o erro, para não deixar imagem órfã sem registro associado.
+    """
     get_tab_or_404(workspace_id, tab_id, db)
     get_tutorial_or_404(tab_id, tutorial_id, db)
 
@@ -85,6 +104,7 @@ def list_images(
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
+    """Lista as imagens de um tutorial, ordenadas por position. Exige ser membro do workspace."""
     get_tab_or_404(workspace_id, tab_id, db)
     get_tutorial_or_404(tab_id, tutorial_id, db)
 
@@ -105,6 +125,7 @@ def delete_image(
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
+    """Remove uma imagem do banco e o arquivo correspondente do disco. Exige ser admin do workspace."""
     get_tab_or_404(workspace_id, tab_id, db)
     get_tutorial_or_404(tab_id, tutorial_id, db)
 

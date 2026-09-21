@@ -1,3 +1,9 @@
+/**
+ * Componente raiz. Controla qual "página" é exibida via um objeto de
+ * estado (view), sem usar react-router — decisão deliberada para manter
+ * simples enquanto o projeto ainda está em desenvolvimento.
+ */
+
 import { useState, useEffect } from "react";
 import { getCurrentUser } from "./services/api";
 import Header from "./components/Header";
@@ -11,19 +17,28 @@ import "./styles/app.css";
 
 export default function App() {
   const [user, setUser] = useState(null);
+  const [checkingAuth, setCheckingAuth] = useState(true);
   const [view, setView] = useState({ page: "workspaces" });
   const [searchQuery, setSearchQuery] = useState("");
 
-  // checagem do token JWT salvo.
-    useEffect(() => {
+  // Ao carregar a página, valida a sessão a partir do token salvo (não do
+  // usuário salvo cru) — assim, se o token expirou, GET /auth/me falha e a
+  // sessão local é limpa, voltando pra tela de login. checkingAuth evita
+  // mostrar a tela de login "piscando" antes de confirmar se já existe
+  // uma sessão válida.
+  useEffect(() => {
     const token = localStorage.getItem("bt_token");
-    if (!token) return;
+    if (!token) {
+      setCheckingAuth(false);
+      return;
+    }
 
     getCurrentUser()
       .then(setUser)
       .catch(() => {
         localStorage.removeItem("bt_token");
-      });
+      })
+      .finally(() => setCheckingAuth(false));
   }, []);
 
   function handleLogin(u) {
@@ -35,6 +50,10 @@ export default function App() {
     setView({ page: "workspaces" });
     setSearchQuery("");
     localStorage.removeItem("bt_token");
+  }
+
+   if (checkingAuth) {
+    return null;
   }
 
   if (!user) {
@@ -60,10 +79,14 @@ export default function App() {
       {!isSearching && <Breadcrumb items={crumbs} onNavigate={navigate} />}
 
       {isSearching ? (
-              <SearchResultsPage
+        <SearchResultsPage
           query={searchQuery}
           onOpenTutorial={(t) => {
             setSearchQuery("");
+            // O resultado da busca traz workspace_id/workspace_name em vez
+            // de um objeto workspace pronto (a busca cruza vários
+            // workspaces, não só o que estava aberto) — monta o objeto
+            // aqui para manter o mesmo formato usado no resto do app.
             setView({
               page: "tutorial",
               tutorial: t,
@@ -72,7 +95,6 @@ export default function App() {
             });
           }}
         />
-
       ) : view.page === "workspaces" ? (
         <WorkspacesPage user={user} onOpen={(ws) => setView({ page: "tabs", workspace: ws })} />
       ) : view.page === "tabs" ? (
@@ -83,7 +105,7 @@ export default function App() {
           onSelectTab={(tabId) => setView({ ...view, tabId })}
           onOpenTutorial={(t) => setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId })}
         />
-           ) : view.page === "tutorial" ? (
+      ) : view.page === "tutorial" ? (
         <TutorialDetailPage
           workspace={view.workspace}
           tabId={view.tabId}
@@ -93,12 +115,4 @@ export default function App() {
       ) : null}
     </div>
   );
-}
-
-export async function getTutorial(workspaceId, tabId, tutorialId) {
-  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`);
-}
-
-export async function listSteps(workspaceId, tabId, tutorialId) {
-  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/steps`);
 }

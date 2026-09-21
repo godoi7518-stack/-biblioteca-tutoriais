@@ -1,9 +1,18 @@
 import { useEffect } from "react";
 import { ArrowLeftIcon, ArrowRightIcon } from "./Icons";
 
+/**
+ * Modal de imagem em tela cheia, com navegação entre imagens da galeria.
+ * Recebe a lista inteira de images + o index atual (não uma imagem
+ * isolada) para poder saber se existe anterior/próxima e navegar sozinho.
+ * index null (ou images vazio) significa "fechado" — não renderiza nada.
+ */
 export default function ImageLightbox({ images, index, apiUrl, onClose, onNavigate }) {
   const image = images && index != null ? images[index] : null;
 
+  // Atalhos de teclado: Escape fecha, setas navegam. Só registra o
+  // listener enquanto o lightbox está de fato aberto (image != null), e
+  // remove no cleanup para não vazar listeners quando fechado.
   useEffect(() => {
     if (image == null) return;
 

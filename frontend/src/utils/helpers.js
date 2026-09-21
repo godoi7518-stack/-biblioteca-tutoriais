@@ -1,5 +1,3 @@
-import { TUTORIALS } from "../data/mockData";
-
 export function initials(name) {
   return name
     .split(" ")
@@ -9,27 +7,13 @@ export function initials(name) {
     .toUpperCase();
 }
 
-// Busca simples em memória — simula o FULLTEXT que já existe no schema MySQL.
-// Ao ligar no backend real, troque por uma chamada a algo como
-// GET /tutorials/search?q=... e retorne o resultado da API aqui.
-export function searchTutorials(query) {
-  const q = query.trim().toLowerCase();
-  if (!q) return [];
-  return TUTORIALS.filter((t) => {
-    const haystack = (
-      t.title +
-      " " +
-      t.summary +
-      " " +
-      (t.body || "") +
-      (t.steps ? t.steps.map((s) => s.title + " " + s.text).join(" ") : "")
-    ).toLowerCase();
-    return haystack.includes(q);
-  });
-}
-
-// Detecta um texto no formato "1 - algo 2 - algo mais..." (com ou sem quebras de linha)
-// e separa em passos. Retorna null se não achar pelo menos 2 passos numerados.
+/**
+ * Detecta um texto no formato "1 - algo 2 - algo mais..." (com ou sem
+ * quebras de linha reais) e separa em passos, para exibir tutoriais
+ * "simple" no mesmo componente de acordeão dos "structured". Exige pelo
+ * menos 2 passos numerados encontrados; se não achar, retorna null e quem
+ * chamou cai de volta no texto corrido normal (MarkdownLite).
+ */
 export function parseNumberedSteps(text) {
   if (!text) return null;
 
