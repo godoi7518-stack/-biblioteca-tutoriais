@@ -16,15 +16,19 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserResponse, status_code=201)
 def register(data: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(
-        (User.email == data.email) | (User.matricula == data.matricula)
-    ).first():
-        raise HTTPException(400, "E-mail ou matrícula já cadastrados")
+    """Cadastra um novo usuário (nome, e-mail e senha). Rota pública.
+
+    A senha é salva apenas como hash (bcrypt) em password_hash. Levanta 400
+    se o e-mail já estiver cadastrado. O usuário criado não pertence a
+    nenhum workspace: ele cria o próprio ou é convidado por um admin.
+    """
+    if db.query(User).filter(User.email == data.email).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado")
 
     user = User(
+        name=data.name,
         email=data.email,
-        matricula=data.matricula,
-        hashed_password=hash_password(data.senha),
+        password_hash=hash_password(data.password),
     )
     db.add(user)
     db.commit()

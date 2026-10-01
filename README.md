@@ -19,18 +19,25 @@ Empresas frequentemente possuem processos internos (reimpressão de documentos, 
 - [x] Endpoints de workspaces, tabs e tutorials (+ passos)
 - [x] Rotas protegidas (autorização por papel: admin vs. membro)
 - [x] Upload, listagem e remoção de imagens de tutorial
+- [x] Busca full-text de tutoriais (MySQL FULLTEXT)
+- [x] Listagem e convite de membros do workspace
 
 **Frontend**
 - [x] Login integrado à API real (JWT)
 - [x] Listagem e criação de workspaces
 - [x] Listagem e criação de categorias (tabs)
 - [x] Listagem, criação e visualização de tutoriais (tipo texto corrido, com exibição em lista expansível)
-- [ ] Criação de tutoriais estruturados (por passos)
-- [ ] Busca integrada (ainda usa dados de exemplo)
-- [ ] Upload de imagens pela interface
+- [x] Criação de tutoriais estruturados (por passos, com imagem por passo)
+- [x] Busca integrada à API real
+- [x] Upload de imagens pela interface
+- [x] Exclusão de workspaces, categorias e tutoriais
+- [x] Tela de membros (listar e convidar)
+- [ ] Remover membro / trocar papel
+- [ ] Edição de tutoriais
+- [ ] Tela de cadastro de usuário (a rota `/auth/register` já existe no backend)
 - [ ] Tutorial guiado de apresentação da plataforma (onboarding)
 
-> Projeto em desenvolvimento incremental. Backend funcionalmente completo; frontend em processo de integração com a API real.
+> Projeto em desenvolvimento incremental.
 
 ## 🗂️ Estrutura do repositório
 
@@ -38,7 +45,7 @@ Empresas frequentemente possuem processos internos (reimpressão de documentos, 
 biblioteca-tutoriais/
 ├── backend/       # API em FastAPI + SQLAlchemy
 ├── frontend/      # Interface em React (Vite)
-├── database/      # Script de criação do banco (schema.sql)
+├── database/      # Script de criação do banco (tutorial biblioteca.sql)
 ├── .gitignore
 └── README.md
 ```
@@ -71,7 +78,7 @@ O modelo suporta busca full-text (`FULLTEXT`) sobre título, resumo e conteúdo 
 **Pré-requisitos:** MySQL Server 8+ instalado (localmente ou via Docker).
 
 1. Abra o MySQL Workbench (ou outro cliente MySQL de sua preferência)
-2. Execute o script completo em `database/schema.sql`
+2. Execute o script completo em `database/tutorial biblioteca.sql`
 
 O script já contém `CREATE DATABASE IF NOT EXISTS` e `USE`, portanto cria o banco automaticamente ao ser executado.
 
@@ -85,7 +92,7 @@ python -m venv venv
 venv\Scripts\activate
 3. Instale as dependências:
 pip install -r requirements.txt
-4. Crie um arquivo `.env` na pasta `backend` com as variáveis de conexão (veja `.env` de exemplo, se disponibilizado)
+4. Copie `backend/.env.example` para `backend/.env` e preencha as variáveis de conexão com o banco e a chave do JWT
 5. Suba o servidor:
 uvicorn app.main:app --reload
 6. Acesse a documentação interativa em `http://127.0.0.1:8000/docs`
