@@ -2,20 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import MarkdownLite from "../components/MarkdownLite";
 import AccordionSteps from "../components/AccordionSteps";
 import { parseNumberedSteps } from "../utils/helpers";
-import { getTutorial, listSteps, listImages, uploadImage, deleteImage, API_URL } from "../services/api";
+import { getTutorial, listSteps, listImages, uploadImage, deleteImage, deleteTutorial, API_URL } from "../services/api";
 import ImageLightbox from "../components/ImageLightbox";
+import OptionsMenu from "../components/OptionsMenu";
 
-/**
- * Tela de detalhe de um tutorial. Recebe apenas identificadores
- * (workspace, tabId, tutorialId) e busca os dados completos por conta
- * própria — não depende do objeto passado por quem navegou até aqui.
- * Isso importa porque a listagem de tabs e o resultado de busca retornam
- * versões resumidas do tutorial (sem content/steps completos); buscar
- * sempre garante que a tela mostra o conteúdo certo não importa de onde
- * veio a navegação. initialTutorial é só um atalho visual (mostra o título
- * enquanto carrega, evita tela em branco).
- */
-export default function TutorialDetailPage({ workspace, tabId, tutorialId, initialTutorial }) {
+export default function TutorialDetailPage({ workspace, tabId, tutorialId, initialTutorial, onDeleted }) {
   const [tutorial, setTutorial] = useState(initialTutorial || null);
   const [steps, setSteps] = useState(null);
   const [images, setImages] = useState([]);
@@ -32,9 +23,6 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
   }
 
   useEffect(() => {
-    // cancelled evita que uma resposta antiga sobrescreva o estado se o
-    // usuário trocar de tutorial rápido, antes da requisição anterior
-    // terminar (efeito de corrida clássico do React em useEffect async).
     let cancelled = false;
     setLoading(true);
     setError("");
@@ -43,8 +31,6 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
       .then((data) => {
         if (cancelled) return;
         setTutorial(data);
-        // Só busca os steps se for um tutorial estruturado — evita uma
-        // chamada desnecessária pra tutoriais "simple".
         if (data.content_type === "structured") {
           return listSteps(workspace.id, tabId, tutorialId).then((s) => {
             if (!cancelled) setSteps(s);
@@ -65,13 +51,8 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
     };
   }, [workspace.id, tabId, tutorialId]);
 
-  // Dispara clique programático no <input type="file"> escondido — truque
-  // padrão pra ter um botão "+ Adicionar imagem" bonito em vez do input
-  // feio nativo do navegador.
   function handleFileSelected(e) {
     const file = e.target.files[0];
-    // Limpa o valor do input depois de ler: sem isso, selecionar o MESMO
-    // arquivo de novo não dispara onChange (o navegador ignora silenciosamente).
     e.target.value = "";
     if (!file) return;
 
@@ -94,6 +75,28 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
     }
   }
 
+  function handleEditPlaceholder() {
+    alert("Reordenar e adicionar passos ainda não está disponível — chega assim que o tutorial estruturado estiver funcionando.");
+  }
+
+  async function handleDeleteTutorial() {
+    if (!window.confirm("Apagar este tutorial e suas imagens? Essa ação não pode ser desfeita.")) return;
+    try {
+      await deleteTutorial(workspace.id, tabId, tutorialId);
+      onDeleted();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
+  // Encontra a posição de uma imagem de passo dentro da lista completa de
+  // imagens do tutorial, para abrir o lightbox no lugar certo — a navegação
+  // por setas continua passando por todas as imagens, não só as do passo.
+  function handleStepImageClick(img) {
+    const idx = images.findIndex((i) => i.id === img.id);
+    if (idx !== -1) setLightboxIndex(idx);
+  }
+
   if (loading && !tutorial) {
     return (
       <div className="content">
@@ -112,42 +115,50 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
 
   const isStructured = tutorial.content_type === "structured";
 
-  // Normaliza os nomes de campo do backend (content/is_critical) para o
-  // formato que AccordionSteps espera (text/critical) — os dois tipos de
-  // tutorial (structured de verdade vs. simple parseado) acabam usando o
-  // mesmo componente visual.
   const structuredSteps = isStructured
     ? (steps || []).map((s) => ({
         title: s.title,
         text: s.content,
         critical: s.is_critical,
+        images: images
+          .filter((img) => img.step_id === s.id)
+          .map((img) => ({ ...img, src: `${API_URL}${img.image_url}` })),
       }))
     : null;
 
-  // Para tutoriais "simple", tenta detectar um padrão "1 - texto 2 - texto"
-  // no conteúdo e exibir como acordeão também; se não achar (texto corrido
-  // de verdade, sem numeração), cai no MarkdownLite normal.
   const parsedSimpleSteps = !isStructured ? parseNumberedSteps(tutorial.content) : null;
+
+  // A galeria geral mostra só imagens sem passo associado — as que têm
+  // step_id aparecem dentro do respectivo passo no acordeão, não aqui.
+  const unassignedImages = images.filter((img) => !img.step_id);
 
   return (
     <div className="content">
       <div className="tut-detail">
-        <h1>{tutorial.title}</h1>
+        <div className="tut-detail-header">
+          <h1>{tutorial.title}</h1>
+          <OptionsMenu
+            items={[
+              { label: "Editar", onClick: handleEditPlaceholder },
+              { label: "Excluir tutorial", danger: true, onClick: handleDeleteTutorial },
+            ]}
+          />
+        </div>
         <div className="meta-line">
           {isStructured ? "Tutorial estruturado" : "Tutorial em texto corrido"}
         </div>
 
         {isStructured ? (
-          <AccordionSteps steps={structuredSteps} />
+          <AccordionSteps steps={structuredSteps} onImageClick={handleStepImageClick} />
         ) : parsedSimpleSteps ? (
-          <AccordionSteps steps={parsedSimpleSteps} />
+          <AccordionSteps steps={parsedSimpleSteps} onImageClick={handleStepImageClick} />
         ) : (
           <MarkdownLite text={tutorial.content || ""} />
         )}
 
         <div className="page-title" style={{ marginTop: 24 }}>
           <h1 style={{ fontSize: 15 }}>
-            Imagens<span className="count">{images.length}</span>
+            Imagens<span className="count">{unassignedImages.length}</span>
           </h1>
           <button className="btn-new" onClick={() => fileInputRef.current.click()} disabled={uploading}>
             {uploading ? "Enviando…" : "+ Adicionar imagem"}
@@ -161,21 +172,24 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
           />
         </div>
 
-        {images.length === 0 ? (
+        {unassignedImages.length === 0 ? (
           <div className="empty-state">Nenhuma imagem adicionada ainda.</div>
         ) : (
           <div className="image-gallery">
-            {images.map((img, i) => (
-              <div className="image-thumb" key={img.id}>
-                <button className="image-thumb-open" onClick={() => setLightboxIndex(i)}>
-                  <img src={`${API_URL}${img.image_url}`} alt={img.caption || tutorial.title} />
-                </button>
-                <button className="image-thumb-remove" onClick={() => handleDeleteImage(img.id)}>
-                  ×
-                </button>
-                {img.caption && <div className="image-thumb-caption">{img.caption}</div>}
-              </div>
-            ))}
+            {unassignedImages.map((img) => {
+              const fullIndex = images.findIndex((i) => i.id === img.id);
+              return (
+                <div className="image-thumb" key={img.id}>
+                  <button className="image-thumb-open" onClick={() => setLightboxIndex(fullIndex)}>
+                    <img src={`${API_URL}${img.image_url}`} alt={img.caption || tutorial.title} />
+                  </button>
+                  <button className="image-thumb-remove" onClick={() => handleDeleteImage(img.id)}>
+                    ×
+                  </button>
+                  {img.caption && <div className="image-thumb-caption">{img.caption}</div>}
+                </div>
+              );
+            })}
           </div>
         )}
       </div>

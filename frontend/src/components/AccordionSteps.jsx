@@ -1,15 +1,7 @@
 import { useState } from "react";
 import { ChevronIcon } from "./Icons";
 
-/**
- * Lista expansível de passos, usada tanto para tutoriais "structured"
- * (passos reais do banco) quanto "simple" com texto no padrão "1 - texto
- * 2 - texto" (parseado por parseNumberedSteps). Espera um array de objetos
- * { title, text, critical }.
- */
-export default function AccordionSteps({ steps }) {
-  // Um Set (não um único índice) permite vários passos abertos ao mesmo
-  // tempo — abrir um não fecha os outros. Começa com o passo 0 aberto.
+export default function AccordionSteps({ steps, onImageClick }) {
   const [openIndexes, setOpenIndexes] = useState(() => new Set([0]));
 
   function toggle(i) {
@@ -39,6 +31,22 @@ export default function AccordionSteps({ steps }) {
               <div className="accordion-body">
                 {s.critical && <div className="critical-flag">⚠ ETAPA CRÍTICA</div>}
                 <div className="step-text">{s.text}</div>
+                {s.images && s.images.length > 0 && (
+                  <div className="step-image-row">
+                    {s.images.map((img) => (
+                      <button
+                        key={img.id}
+                        className="step-image-thumb"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onImageClick(img);
+                        }}
+                      >
+                        <img src={img.src} alt={img.caption || ""} />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

@@ -110,3 +110,55 @@ def list_members(
 ):
     """Lista os membros (admins e members) de um workspace. Exige ser membro dele."""
     return db.query(Membership).filter(Membership.workspace_id == workspace_id).all()
+
+import os
+
+
+@router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_workspace(
+    workspace_id: int = Path(..., gt=0),
+    admin: Membership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Apaga um workspace inteiro: tutoriais, tabs, memberships e imagens
+    associadas. Exige ser admin do workspace.
+
+    O banco só tem ON DELETE CASCADE de tutorials para tutorial_steps/
+    tutorial_images — não existe cascade automático de workspace até lá
+    embaixo, então a exclusão é feita manualmente aqui, na ordem correta
+    (tutorials primeiro, o que já dispara o cascade do banco para steps e
+    imagens; depois tabs, memberships, e por fim o workspace). Os arquivos
+    físicos de imagem são coletados antes do commit e removidos do disco
+    só depois que a transação no banco for confirmada com sucesso.
+    """
+    from app.models.tab import Tab
+    from app.models.tutorial import Tutorial
+    from app.models.tutorial_image import TutorialImage
+
+    tab_ids = [t.id for t in db.query(Tab.id).filter(Tab.workspace_id == workspace_id).all()]
+
+    image_paths = []
+    if tab_ids:
+        tutorial_ids = [
+            t.id for t in db.query(Tutorial.id).filter(Tutorial.tab_id.in_(tab_ids)).all()
+        ]
+        if tutorial_ids:
+            image_paths = [
+                img.image_url.lstrip("/")
+                for img in db.query(TutorialImage).filter(TutorialImage.tutorial_id.in_(tutorial_ids)).all()
+            ]
+            db.query(Tutorial).filter(Tutorial.id.in_(tutorial_ids)).delete(synchronize_session=False)
+
+    db.query(Tab).filter(Tab.workspace_id == workspace_id).delete(synchronize_session=False)
+    db.query(Membership).filter(Membership.workspace_id == workspace_id).delete(synchronize_session=False)
+
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace não encontrado")
+
+    db.delete(workspace)
+    db.commit()
+
+    for path in image_paths:
+        if os.path.exists(path):
+            os.remove(path)

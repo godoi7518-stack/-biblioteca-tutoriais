@@ -14,29 +14,22 @@ from app.core.dependencies import get_current_user
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/register", response_model=UserResponse)
-def register(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Cria um novo usuário. Rota pública, não exige autenticação.
+@router.post("/register", response_model=UserResponse, status_code=201)
+def register(data: UserCreate, db: Session = Depends(get_db)):
+    if db.query(User).filter(
+        (User.email == data.email) | (User.matricula == data.matricula)
+    ).first():
+        raise HTTPException(400, "E-mail ou matrícula já cadastrados")
 
-    Levanta 400 se o e-mail já estiver cadastrado. Não faz login automático
-    após o cadastro — o cliente precisa chamar /auth/login em seguida.
-    """
-    existing_user = db.query(User).filter(User.email == user_data.email).first()
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="E-mail já cadastrado",
-        )
-
-    new_user = User(
-        name=user_data.name,
-        email=user_data.email,
-        password_hash=hash_password(user_data.password),
+    user = User(
+        email=data.email,
+        matricula=data.matricula,
+        hashed_password=hash_password(data.senha),
     )
-    db.add(new_user)
+    db.add(user)
     db.commit()
-    db.refresh(new_user)
-    return new_user
+    db.refresh(user)
+    return user
 
 
 @router.post("/login", response_model=Token)

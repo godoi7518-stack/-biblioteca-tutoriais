@@ -137,10 +137,11 @@ export async function listImages(workspaceId, tabId, tutorialId) {
  * navegador gera esse header sozinho, incluindo o "boundary" que separa
  * os campos do formulário — setar na mão quebraria o upload.
  */
-export async function uploadImage(workspaceId, tabId, tutorialId, file, caption) {
+export async function uploadImage(workspaceId, tabId, tutorialId, file, caption, stepId) {
   const formData = new FormData();
   formData.append("file", file);
   if (caption) formData.append("caption", caption);
+  if (stepId) formData.append("step_id", stepId);
 
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/images`, {
     method: "POST",
@@ -151,5 +152,27 @@ export async function uploadImage(workspaceId, tabId, tutorialId, file, caption)
 export async function deleteImage(workspaceId, tabId, tutorialId, imageId) {
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/images/${imageId}`, {
     method: "DELETE",
+  });
+}
+
+export async function deleteWorkspace(workspaceId) {
+  return apiFetch(`/workspaces/${workspaceId}`, {
+    method: "DELETE",
+  });
+}
+
+export async function deleteTab(workspaceId, tabId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}`, { method: "DELETE" });
+}
+
+export async function deleteTutorial(workspaceId, tabId, tutorialId) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`, { method: "DELETE" });
+}
+
+export async function addStep(workspaceId, tabId, tutorialId, data) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/steps`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
   });
 }

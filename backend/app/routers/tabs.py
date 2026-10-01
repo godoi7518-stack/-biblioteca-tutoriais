@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
+import os
 
 from app.database import get_db
 from app.models.tab import Tab
@@ -92,7 +93,33 @@ def delete_tab(
     admin: Membership = Depends(require_admin),
     db: Session = Depends(get_db),
 ):
-    """Apaga uma tab e, em cascata via FK, seus tutoriais. Exige ser admin do workspace."""
+    """Apaga uma tab e todos os tutoriais dentro dela (com suas imagens).
+    Exige ser admin do workspace.
+
+    Mesmo problema do delete_workspace: não existe ON DELETE CASCADE de
+    tutorials até tabs, então os tutoriais são apagados manualmente antes
+    (o que já dispara o cascade do banco para steps e imagens), e os
+    arquivos físicos de imagem são removidos do disco só depois do commit
+    confirmar a exclusão.
+    """
+    from app.models.tutorial import Tutorial
+    from app.models.tutorial_image import TutorialImage
+
     tab = get_tab_or_404(workspace_id, tab_id, db)
+
+    tutorial_ids = [t.id for t in db.query(Tutorial.id).filter(Tutorial.tab_id == tab_id).all()]
+
+    image_paths = []
+    if tutorial_ids:
+        image_paths = [
+            img.image_url.lstrip("/")
+            for img in db.query(TutorialImage).filter(TutorialImage.tutorial_id.in_(tutorial_ids)).all()
+        ]
+        db.query(Tutorial).filter(Tutorial.id.in_(tutorial_ids)).delete(synchronize_session=False)
+
     db.delete(tab)
     db.commit()
+
+    for path in image_paths:
+        if os.path.exists(path):
+            os.remove(path)

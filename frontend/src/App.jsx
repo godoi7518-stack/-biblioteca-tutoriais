@@ -105,12 +105,13 @@ export default function App() {
           onSelectTab={(tabId) => setView({ ...view, tabId })}
           onOpenTutorial={(t) => setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId })}
         />
-      ) : view.page === "tutorial" ? (
+          ) : view.page === "tutorial" ? (
         <TutorialDetailPage
           workspace={view.workspace}
           tabId={view.tabId}
           tutorialId={view.tutorial.id}
           initialTutorial={view.tutorial}
+          onDeleted={() => setView({ page: "tabs", workspace: view.workspace, tabId: view.tabId })}
         />
       ) : null}
     </div>
