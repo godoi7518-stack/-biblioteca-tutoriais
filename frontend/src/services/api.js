@@ -176,3 +176,14 @@ export async function addStep(workspaceId, tabId, tutorialId, data) {
     body: JSON.stringify(data),
   });
 }
+export async function listMembers(workspaceId) {
+  return apiFetch(`/workspaces/${workspaceId}/members`);
+}
+
+export async function inviteMember(workspaceId, email, role) {
+  return apiFetch(`/workspaces/${workspaceId}/members`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, role }),
+  });
+}

@@ -13,6 +13,7 @@ import WorkspacesPage from "./pages/Workspaces";
 import TabsPage from "./pages/Tabs";
 import TutorialDetailPage from "./pages/TutorialDetail";
 import SearchResultsPage from "./pages/SearchResults";
+import MembersPage from "./pages/Members";
 import "./styles/app.css";
 
 export default function App() {
@@ -65,6 +66,7 @@ export default function App() {
   const crumbs = [{ label: "Workspaces", page: "workspaces" }];
   if (view.workspace) crumbs.push({ label: view.workspace.name, page: "tabs", workspace: view.workspace });
   if (view.tutorial) crumbs.push({ label: view.tutorial.title, page: "tutorial" });
+  if (view.page === "members") crumbs.push({ label: "Membros", page: "members" });
 
   function navigate(item) {
     setSearchQuery("");
@@ -104,6 +106,9 @@ export default function App() {
           activeTabId={view.tabId}
           onSelectTab={(tabId) => setView({ ...view, tabId })}
           onOpenTutorial={(t) => setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId })}
+          // Guarda o tabId para que, ao voltar pelo breadcrumb, a mesma
+          // categoria continue selecionada.
+          onOpenMembers={() => setView({ page: "members", workspace: view.workspace, tabId: view.tabId })}
         />
           ) : view.page === "tutorial" ? (
         <TutorialDetailPage
@@ -113,6 +118,8 @@ export default function App() {
           initialTutorial={view.tutorial}
           onDeleted={() => setView({ page: "tabs", workspace: view.workspace, tabId: view.tabId })}
         />
+      ) : view.page === "members" ? (
+        <MembersPage user={user} workspace={view.workspace} />
       ) : null}
     </div>
   );

@@ -12,11 +12,23 @@ from app.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse
-from app.schemas.membership import MembershipInvite, MembershipResponse
+from app.schemas.membership import MembershipInvite, MemberResponse
 from app.models.membership import Membership, MembershipRole
 from app.core.dependencies import get_current_user, get_workspace_membership, require_admin
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
+
+
+def _to_member_response(membership: Membership, user: User) -> MemberResponse:
+    """Junta uma Membership e o User correspondente no formato MemberResponse."""
+    return MemberResponse(
+        id=membership.id,
+        user_id=user.id,
+        name=user.name,
+        email=user.email,
+        role=membership.role,
+        created_at=membership.created_at,
+    )
 
 
 @router.post("", response_model=WorkspaceResponse)
@@ -69,7 +81,7 @@ def get_workspace(
     return workspace
 
 
-@router.post("/{workspace_id}/members", response_model=MembershipResponse)
+@router.post("/{workspace_id}/members", response_model=MemberResponse)
 def invite_member(
     data: MembershipInvite,
     workspace_id: int = Path(..., gt=0),
@@ -81,7 +93,8 @@ def invite_member(
     Não envia convite por e-mail nem cria conta para quem ainda não tem
     cadastro — busca um usuário existente pelo e-mail informado. Levanta 404
     se o e-mail não corresponder a nenhum usuário, e 400 se a pessoa já for
-    membro deste workspace.
+    membro deste workspace. Devolve o novo membro no mesmo formato de
+    list_members (com nome e e-mail do usuário).
     """
     user = db.query(User).filter(User.email == data.email).first()
     if user is None:
@@ -99,17 +112,26 @@ def invite_member(
     db.add(membership)
     db.commit()
     db.refresh(membership)
-    return membership
+    return _to_member_response(membership, user)
 
 
-@router.get("/{workspace_id}/members", response_model=list[MembershipResponse])
+@router.get("/{workspace_id}/members", response_model=list[MemberResponse])
 def list_members(
     workspace_id: int = Path(..., gt=0),
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
-    """Lista os membros (admins e members) de um workspace. Exige ser membro dele."""
-    return db.query(Membership).filter(Membership.workspace_id == workspace_id).all()
+    """Lista os membros (admins e members) de um workspace, com nome e e-mail
+    de cada um, em ordem de entrada. Exige ser membro dele (admin ou member).
+    """
+    rows = (
+        db.query(Membership, User)
+        .join(User, User.id == Membership.user_id)
+        .filter(Membership.workspace_id == workspace_id)
+        .order_by(Membership.created_at, Membership.id)
+        .all()
+    )
+    return [_to_member_response(m, u) for m, u in rows]
 
 import os
 
