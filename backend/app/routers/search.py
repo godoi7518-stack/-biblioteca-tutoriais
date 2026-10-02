@@ -1,9 +1,10 @@
 """Busca full-text de tutoriais, abrangendo todos os workspaces do usuário.
 
 Usa o índice FULLTEXT ft_search (title, summary, content) já existente no
-schema.sql, em modo BOOLEAN com wildcard de prefixo — permite busca "ao
-vivo" (encontra resultado a partir de poucas letras digitadas), diferente
-do modo NATURAL LANGUAGE que exige palavras completas.
+schema do banco (database/tutorial biblioteca.sql), em modo BOOLEAN com
+wildcard de prefixo — permite busca "ao vivo" (encontra resultado a partir
+de poucas letras digitadas), diferente do modo NATURAL LANGUAGE que exige
+palavras completas.
 """
 
 import re

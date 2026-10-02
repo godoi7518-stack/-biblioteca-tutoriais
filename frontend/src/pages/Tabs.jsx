@@ -3,7 +3,7 @@ import { listTabs, createTab, deleteTab, listTutorials, createTutorial, addStep,
 import { PlusIcon } from "../components/Icons";
 import OptionsMenu from "../components/OptionsMenu";
 
-export default function TabsPage({ user, workspace, activeTabId, onSelectTab, onOpenTutorial }) {
+export default function TabsPage({ user, workspace, activeTabId, onSelectTab, onOpenTutorial, onOpenMembers }) {
   const [tabs, setTabs] = useState([]);
   const [tutorials, setTutorials] = useState([]);
   const [loadingTabs, setLoadingTabs] = useState(true);
@@ -182,9 +182,14 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
     <div className="content">
       <div className="page-title">
         <h1>{workspace.name}</h1>
-        <button className="btn-new" onClick={handleCreateTab} disabled={creatingTab}>
-          <PlusIcon /> {creatingTab ? "Criando…" : "Nova categoria"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="btn-new" onClick={onOpenMembers}>
+            Membros
+          </button>
+          <button className="btn-new" onClick={handleCreateTab} disabled={creatingTab}>
+            <PlusIcon /> {creatingTab ? "Criando…" : "Nova categoria"}
+          </button>
+        </div>
       </div>
 
       <div className="tab-row">

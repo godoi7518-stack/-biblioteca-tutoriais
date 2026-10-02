@@ -8,10 +8,17 @@ class MembershipInvite(BaseModel):
     role: MembershipRole = MembershipRole.MEMBER
 
 
-class MembershipResponse(BaseModel):
+class MemberResponse(BaseModel):
+    """Membro de um workspace: dados da Membership + nome/e-mail do User.
+
+    id e created_at são da Membership (created_at = data de entrada no
+    workspace, não a data de cadastro do usuário).
+    """
+
     id: int
     user_id: int
-    workspace_id: int
+    name: str
+    email: EmailStr
     role: MembershipRole
     created_at: datetime
 
