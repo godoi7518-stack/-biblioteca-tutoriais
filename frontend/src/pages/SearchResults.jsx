@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { searchTutorials } from "../services/api";
+import { ArrowLeftIcon } from "../components/Icons";
 
-export default function SearchResultsPage({ query, onOpenTutorial }) {
+export default function SearchResultsPage({ query, onOpenTutorial, onGoHome }) {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -33,6 +34,9 @@ export default function SearchResultsPage({ query, onOpenTutorial }) {
     <div className="content">
       <div className="page-title">
         <h1>Resultados da busca</h1>
+        <button className="btn-new" onClick={onGoHome}>
+          <ArrowLeftIcon /> Voltar ao início
+        </button>
       </div>
       <p className="search-results-note">
         {loading ? "Buscando…" : `${results.length} resultado(s) para "${query}"`}
