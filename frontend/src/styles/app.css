@@ -155,10 +155,16 @@ input { font-family: inherit; }
   display: flex; align-items: center; gap: 6px;
 }
 .btn-new:hover { background: var(--blue-100); }
+.btn-new svg { width: 13px; height: 13px; flex-shrink: 0; }
 
 /* ---------- Tiles (workspaces) ---------- */
-.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; }
+/* grid-auto-rows: 1fr deixa todas as linhas da grade com a mesma altura */
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); grid-auto-rows: 1fr; gap: 14px; }
+/* width/height 100%: o <button> ocupa a célula inteira da grade, em vez de
+   só a largura do texto — assim todos os tiles ficam do mesmo tamanho e o
+   menu ⋮ (posicionado no canto da célula) fica sempre dentro do tile */
 .tile {
+  width: 100%; height: 100%;
   background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
   padding: 16px; display: flex; flex-direction: column; gap: 10px; text-align: left;
   border-top: 3px solid var(--blue-700);
@@ -168,7 +174,13 @@ input { font-family: inherit; }
   width: 32px; height: 32px; border-radius: 6px; background: var(--blue-100); color: var(--blue-700);
   display: flex; align-items: center; justify-content: center; font-weight: 700;
 }
-.tile-title { font-weight: 600; font-size: 14.5px; color: var(--title-color); }
+.tile-title {
+  font-weight: 600; font-size: 14.5px; color: var(--title-color);
+  /* Nomes longos: no máximo 2 linhas, terminando em "…"; palavras sem
+     espaço quebram em vez de esticar o tile */
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  overflow: hidden; overflow-wrap: anywhere;
+}
 .tile .tile-meta { font-size: 12px; color: var(--text-muted); }
 
 /* ---------- Tabs list ---------- */
@@ -216,6 +228,8 @@ input { font-family: inherit; }
 .step-body { flex: 1; }
 .step-title { font-weight: 600; font-size: 13.8px; margin-bottom: 3px; color: var(--title-color); }
 .step-text { font-size: 13px; color: var(--text); }
+/* Sem margem sobrando depois do último parágrafo/lista do passo */
+.step-text .markdown-body > :last-child { margin-bottom: 0; }
 .critical-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: var(--critical); margin-bottom: 4px; letter-spacing: 0.2px; }
 
 .search-results-note { font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; }
@@ -292,8 +306,6 @@ input { font-family: inherit; }
 .options-menu-item.danger:hover { background: var(--critical-bg); }
 
 .tile-wrapper { position: relative; }
-.tile-menu { position: absolute; top: 6px; right: 6px; }
-
 .tile-menu { position: absolute; top: 6px; right: 6px; }
 .tab-pill-wrapper { display: inline-flex; align-items: center; }
 .tut-row-clickable { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: none; text-align: left; padding: 0; cursor: pointer; }

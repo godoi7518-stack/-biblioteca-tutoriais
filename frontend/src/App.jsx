@@ -83,6 +83,12 @@ export default function App() {
       {isSearching ? (
         <SearchResultsPage
           query={searchQuery}
+          // "Início" é a tela de Workspaces: limpa a busca (o que esconde
+          // os resultados) e reseta a navegação.
+          onGoHome={() => {
+            setSearchQuery("");
+            setView({ page: "workspaces" });
+          }}
           onOpenTutorial={(t) => {
             setSearchQuery("");
             // O resultado da busca traz workspace_id/workspace_name em vez
