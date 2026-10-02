@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronIcon } from "./Icons";
+import MarkdownLite from "./MarkdownLite";
 
 export default function AccordionSteps({ steps, onImageClick }) {
   const [openIndexes, setOpenIndexes] = useState(() => new Set([0]));
@@ -30,7 +31,11 @@ export default function AccordionSteps({ steps, onImageClick }) {
             {isOpen && (
               <div className="accordion-body">
                 {s.critical && <div className="critical-flag">⚠ ETAPA CRÍTICA</div>}
-                <div className="step-text">{s.text}</div>
+                {/* MarkdownLite (o mesmo dos tutoriais "simple") respeita as
+                    quebras de linha digitadas e entende **negrito** e listas */}
+                <div className="step-text">
+                  <MarkdownLite text={s.text || ""} />
+                </div>
                 {s.images && s.images.length > 0 && (
                   <div className="step-image-row">
                     {s.images.map((img) => (

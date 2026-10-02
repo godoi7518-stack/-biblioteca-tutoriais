@@ -228,6 +228,8 @@ input { font-family: inherit; }
 .step-body { flex: 1; }
 .step-title { font-weight: 600; font-size: 13.8px; margin-bottom: 3px; color: var(--title-color); }
 .step-text { font-size: 13px; color: var(--text); }
+/* Sem margem sobrando depois do último parágrafo/lista do passo */
+.step-text .markdown-body > :last-child { margin-bottom: 0; }
 .critical-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10.5px; font-weight: 700; color: var(--critical); margin-bottom: 4px; letter-spacing: 0.2px; }
 
 .search-results-note { font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px; }
