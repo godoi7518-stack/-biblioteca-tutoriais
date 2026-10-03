@@ -9,12 +9,82 @@ function getToken() {
   return localStorage.getItem("bt_token");
 }
 
+// Nome amigável de cada campo, usado nas mensagens de erro de validação.
+const FIELD_LABELS = {
+  name: "Nome",
+  email: "E-mail",
+  matricula: "Matrícula",
+  password: "Senha",
+  username: "E-mail",
+  title: "Título",
+};
+
+/**
+ * Traduz UM erro de validação do FastAPI (resposta 422) para português.
+ * Cada erro vem como { loc: ["body", "campo"], type, ctx }, e a mensagem
+ * original ("msg") é em inglês — por isso montamos a frase pelo "type".
+ */
+function describeValidationError(item) {
+  const field = item.loc?.[item.loc.length - 1];
+  const label = FIELD_LABELS[field] || field || "Campo";
+
+  switch (item.type) {
+    case "missing":
+      return `${label}: campo obrigatório.`;
+    case "string_too_short":
+      return item.ctx?.min_length === 1
+        ? `${label}: campo obrigatório.`
+        : `${label}: mínimo de ${item.ctx?.min_length} caracteres.`;
+    case "string_too_long":
+      return `${label}: máximo de ${item.ctx?.max_length} caracteres.`;
+    case "value_error":
+      return field === "email" ? "E-mail inválido." : `${label}: valor inválido.`;
+    default:
+      return `${label}: valor inválido.`;
+  }
+}
+
+/**
+ * Converte uma resposta de erro do backend em um texto para mostrar na tela.
+ * O "detail" do FastAPI pode ser:
+ *  - um texto (nossos HTTPException, ex.: "E-mail já cadastrado");
+ *  - uma LISTA de objetos (erro 422 de validação) — sem este tratamento,
+ *    a tela mostraria "[object Object]".
+ */
+async function extractErrorMessage(res) {
+  try {
+    const body = await res.json();
+    if (typeof body.detail === "string") return body.detail;
+    if (Array.isArray(body.detail) && body.detail.length > 0) {
+      return body.detail.map(describeValidationError).join(" ");
+    }
+  } catch (e) {
+    /* resposta sem corpo JSON */
+  }
+  return "Erro na requisição";
+}
+
+/**
+ * fetch() só lança exceção quando nem chega a falar com o servidor
+ * (backend desligado, sem rede, CORS). Trocamos esse erro técnico
+ * ("Failed to fetch") por uma mensagem clara, com status 0.
+ */
+async function safeFetch(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch (e) {
+    const error = new Error("Não foi possível conectar ao servidor. Verifique se o backend está rodando.");
+    error.status = 0;
+    throw error;
+  }
+}
+
 /**
  * Wrapper de fetch reaproveitado por quase todas as funções abaixo.
  * Anexa o header Authorization automaticamente quando há token salvo, e
  * padroniza o tratamento de erro: se a resposta não for 2xx, lança um
- * Error cujo .message é o campo "detail" que o FastAPI sempre retorna nos
- * seus HTTPException (ex.: "Você não pertence a este workspace").
+ * Error cujo .message é o texto de erro do backend (ver
+ * extractErrorMessage) e cujo .status é o código HTTP.
  */
 async function apiFetch(path, options = {}) {
   const token = getToken();
@@ -24,17 +94,10 @@ async function apiFetch(path, options = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_URL}${path}`, { ...options, headers });
+  const res = await safeFetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
-    let detail = "Erro na requisição";
-    try {
-      const body = await res.json();
-      detail = body.detail || detail;
-    } catch (e) {
-      /* resposta sem corpo JSON */
-    }
-    const error = new Error(detail);
+    const error = new Error(await extractErrorMessage(res));
     error.status = res.status;
     throw error;
   }
@@ -54,24 +117,29 @@ export async function login(username, password) {
   body.append("username", username);
   body.append("password", password);
 
-  const res = await fetch(`${API_URL}/auth/login`, {
+  const res = await safeFetch(`${API_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body,
   });
 
+  // Mesmo tratamento de erro do apiFetch: mostra a mensagem real do
+  // backend (ex.: "E-mail ou senha incorretos") em vez de um texto fixo.
   if (!res.ok) {
-    throw new Error("Usuário ou senha inválidos.");
+    const error = new Error(await extractErrorMessage(res));
+    error.status = res.status;
+    throw error;
   }
 
   return res.json(); // { access_token, token_type }
 }
 
-export async function register(name, email, password) {
+/** Cadastro de usuário (rota pública). Não faz login: quem chama decide. */
+export async function register(name, email, matricula, password) {
   return apiFetch("/auth/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, password }),
+    body: JSON.stringify({ name, email, matricula, password }),
   });
 }
 
