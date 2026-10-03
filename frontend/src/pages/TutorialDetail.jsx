@@ -5,8 +5,9 @@ import { parseNumberedSteps } from "../utils/helpers";
 import { getTutorial, listSteps, listImages, uploadImage, deleteImage, deleteTutorial, API_URL } from "../services/api";
 import ImageLightbox from "../components/ImageLightbox";
 import OptionsMenu from "../components/OptionsMenu";
+import TutorialForm from "../components/TutorialForm";
 
-export default function TutorialDetailPage({ workspace, tabId, tutorialId, initialTutorial, onDeleted }) {
+export default function TutorialDetailPage({ workspace, tabId, tutorialId, initialTutorial, onDeleted, onUpdated }) {
   const [tutorial, setTutorial] = useState(initialTutorial || null);
   const [steps, setSteps] = useState(null);
   const [images, setImages] = useState([]);
@@ -15,6 +16,10 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
   const [lightboxIndex, setLightboxIndex] = useState(null);
+  const [editing, setEditing] = useState(false);
+  // Incrementado depois de salvar uma edição: entra nas dependências do
+  // useEffect abaixo e força recarregar tutorial, passos e imagens.
+  const [reloadKey, setReloadKey] = useState(0);
 
   function loadImages() {
     listImages(workspace.id, tabId, tutorialId)
@@ -49,7 +54,7 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
     return () => {
       cancelled = true;
     };
-  }, [workspace.id, tabId, tutorialId]);
+  }, [workspace.id, tabId, tutorialId, reloadKey]);
 
   function handleFileSelected(e) {
     const file = e.target.files[0];
@@ -75,8 +80,11 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
     }
   }
 
-  function handleEditPlaceholder() {
-    alert("Reordenar e adicionar passos ainda não está disponível — chega assim que o tutorial estruturado estiver funcionando.");
+  function handleSaved(saved) {
+    setEditing(false);
+    setReloadKey((k) => k + 1);
+    // Avisa o App para atualizar o título no breadcrumb.
+    if (onUpdated) onUpdated(saved);
   }
 
   async function handleDeleteTutorial() {
@@ -144,7 +152,7 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
           {isAdmin && (
             <OptionsMenu
               items={[
-                { label: "Editar", onClick: handleEditPlaceholder },
+                { label: "Editar", onClick: () => setEditing(true) },
                 { label: "Excluir tutorial", danger: true, onClick: handleDeleteTutorial },
               ]}
             />
@@ -205,6 +213,18 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
           </div>
         )}
       </div>
+
+      {editing && (
+        <TutorialForm
+          workspaceId={workspace.id}
+          tabId={tabId}
+          tutorial={tutorial}
+          steps={steps}
+          images={images}
+          onCancel={() => setEditing(false)}
+          onSaved={handleSaved}
+        />
+      )}
 
       <ImageLightbox
         images={images}

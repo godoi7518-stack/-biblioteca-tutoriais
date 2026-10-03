@@ -334,6 +334,11 @@ input { font-family: inherit; }
 .step-builder-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .step-builder-num { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
 .step-builder-remove { background: none; border: none; color: var(--critical); font-size: 12px; padding: 0; }
+.step-builder-actions { display: flex; align-items: center; gap: 10px; }
+/* Botões ↑ ↓ de reordenar passos no formulário de tutorial. */
+.step-builder-move { background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: 12px; line-height: 1; padding: 3px 7px; }
+.step-builder-move:hover:not(:disabled) { border-color: var(--blue-500); color: var(--text); }
+.step-builder-move:disabled { opacity: 0.35; cursor: default; }
 .step-critical-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
 .step-critical-toggle input { width: auto; }
 
@@ -344,6 +349,10 @@ input { font-family: inherit; }
 .step-image-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .step-image-thumb { width: 70px; height: 70px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--bg); cursor: pointer; }
 .step-image-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Miniatura no formulário de edição: tem botão × por cima e, quando marcada
+   para remoção, fica apagada até o usuário salvar (ou desfazer com ↺). */
+.step-image-thumb.editable { position: relative; cursor: default; }
+.step-image-thumb.removed img { opacity: 0.25; }
 /* ---------- Membros ---------- */
 .members-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); font-size: 13px; }
 .members-table th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; padding: 10px 14px; border-bottom: 1px solid var(--border); }

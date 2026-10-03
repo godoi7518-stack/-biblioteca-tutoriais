@@ -18,6 +18,8 @@ const FIELD_LABELS = {
   role: "Papel",
   username: "E-mail",
   title: "Título",
+  summary: "Resumo",
+  content: "Conteúdo",
 };
 
 /**
@@ -26,8 +28,16 @@ const FIELD_LABELS = {
  * original ("msg") é em inglês — por isso montamos a frase pelo "type".
  */
 function describeValidationError(item) {
-  const field = item.loc?.[item.loc.length - 1];
-  const label = FIELD_LABELS[field] || field || "Campo";
+  const loc = item.loc || [];
+  const field = loc[loc.length - 1];
+  let label = FIELD_LABELS[field] || field || "Campo";
+
+  // Erro dentro de um passo vem como ["body", "steps", 0, "title"]:
+  // indica qual passo, contando a partir de 1 como na tela.
+  const stepsAt = loc.indexOf("steps");
+  if (stepsAt !== -1 && typeof loc[stepsAt + 1] === "number") {
+    label = `Passo ${loc[stepsAt + 1] + 1} – ${label}`;
+  }
 
   switch (item.type) {
     case "missing":
@@ -172,13 +182,45 @@ export async function createTab(workspaceId, name) {
   });
 }
 
+/**
+ * Edita uma categoria. O PUT substitui TODOS os campos, então envie
+ * { name, description, position } completos (para renomear, repita os
+ * valores atuais de description e position).
+ */
+export async function updateTab(workspaceId, tabId, data) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
 export async function listTutorials(workspaceId, tabId) {
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials`);
 }
 
+/**
+ * Cria um tutorial. Para "structured", data.steps leva todos os passos
+ * ([{ title, content, is_critical }], na ordem) e o backend salva tudo de
+ * uma vez. Devolve o tutorial com os passos criados (com ids).
+ */
 export async function createTutorial(workspaceId, tabId, data) {
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+}
+
+/**
+ * Edita um tutorial inteiro: { title, summary, content } ou
+ * { title, summary, steps }. steps é a lista COMPLETA na ordem desejada:
+ * passo com id é atualizado, sem id é criado, e o que não for enviado é
+ * apagado. Devolve o tutorial com os passos atualizados.
+ */
+export async function updateTutorial(workspaceId, tabId, tutorialId, data) {
+  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`, {
+    method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(data),
   });
@@ -242,13 +284,6 @@ export async function deleteTutorial(workspaceId, tabId, tutorialId) {
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`, { method: "DELETE" });
 }
 
-export async function addStep(workspaceId, tabId, tutorialId, data) {
-  return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/steps`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(data),
-  });
-}
 export async function listMembers(workspaceId) {
   return apiFetch(`/workspaces/${workspaceId}/members`);
 }
