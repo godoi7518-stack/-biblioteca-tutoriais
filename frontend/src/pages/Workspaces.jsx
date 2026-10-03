@@ -80,19 +80,22 @@ export default function WorkspacesPage({ user, onOpen }) {
   }
 
   return (
-    <div className="content">
+    // data-tour-ready / data-tour: marcadores do onboarding (src/onboarding).
+    <div className="content" data-tour-ready>
       <div className="page-title">
         <h1>
           Workspaces<span className="count">{workspaces.length}</span>
         </h1>
-        <button className="btn-new" onClick={handleCreate} disabled={creating}>
+        <button className="btn-new" onClick={handleCreate} disabled={creating} data-tour="ws-new">
           <PlusIcon /> {creating ? "Criando…" : "Novo workspace"}
         </button>
       </div>
 
-      <div className="tile-grid">
+      <div className="tile-grid" data-tour={workspaces.length > 0 ? "ws-list" : undefined}>
         {workspaces.length === 0 && (
-          <div className="empty-state">Nenhum workspace ainda. Crie o primeiro acima.</div>
+          <div className="empty-state" data-tour="ws-empty">
+            Nenhum workspace ainda. Crie o primeiro acima.
+          </div>
         )}
         {workspaces.map((ws) => (
           <div className="tile-wrapper" key={ws.id}>

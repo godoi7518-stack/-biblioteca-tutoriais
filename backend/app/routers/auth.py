@@ -73,6 +73,41 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     return {"access_token": access_token, "token_type": "bearer"}
 
 
+# Tours de onboarding que existem no frontend (src/onboarding/tours.js):
+# um por tela, e por papel quando o conteúdo muda para admin/membro.
+ONBOARDING_TOURS = {
+    "workspaces",
+    "tabs-admin", "tabs-member",
+    "tutorial-admin", "tutorial-member",
+    "members-admin", "members-member",
+}
+
+
+@router.post("/me/onboarding/{tour}", response_model=UserResponse)
+def mark_onboarding_seen(
+    tour: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Marca um tour de onboarding como visto pelo usuário logado. Exige login.
+
+    Chamada quando o usuário conclui ou pula um tour, para ele não abrir
+    sozinho de novo (o botão "?" continua podendo reabrir). Levanta 404 para
+    um tour desconhecido. Chamar de novo para um tour já visto não muda nada.
+    """
+    if tour not in ONBOARDING_TOURS:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tour desconhecido")
+
+    seen = list(current_user.onboarding_seen or [])
+    if tour not in seen:
+        # Atribui uma lista NOVA: o SQLAlchemy não percebe alterações feitas
+        # "dentro" de uma coluna JSON (ex.: .append), só a troca do valor.
+        current_user.onboarding_seen = seen + [tour]
+        db.commit()
+        db.refresh(current_user)
+    return current_user
+
+
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     """Retorna os dados do usuário dono do token enviado. Exige login.

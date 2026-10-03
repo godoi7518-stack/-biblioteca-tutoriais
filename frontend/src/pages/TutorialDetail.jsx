@@ -168,17 +168,20 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
   const unassignedImages = images.filter((img) => !img.step_id);
 
   return (
-    <div className="content">
+    // data-tour-ready / data-tour: marcadores do onboarding (src/onboarding).
+    <div className="content" data-tour-ready={!loading || undefined}>
       <div className="tut-detail">
         <div className="tut-detail-header">
           <h1>{tutorial.title}</h1>
           {isAdmin && (
-            <OptionsMenu
-              items={[
-                { label: "Editar", onClick: () => setEditing(true) },
-                { label: "Excluir tutorial", danger: true, onClick: handleDeleteTutorial },
-              ]}
-            />
+            <span data-tour="tut-menu">
+              <OptionsMenu
+                items={[
+                  { label: "Editar", onClick: () => setEditing(true) },
+                  { label: "Excluir tutorial", danger: true, onClick: handleDeleteTutorial },
+                ]}
+              />
+            </span>
           )}
         </div>
         <div className="meta-line">
@@ -186,14 +189,18 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
         </div>
 
         {isStructured ? (
-          <AccordionSteps steps={structuredSteps} onImageClick={handleStepImageClick} />
+          <div data-tour="tut-steps">
+            <AccordionSteps steps={structuredSteps} onImageClick={handleStepImageClick} />
+          </div>
         ) : parsedSimpleSteps ? (
-          <AccordionSteps steps={parsedSimpleSteps} onImageClick={handleStepImageClick} />
+          <div data-tour="tut-steps">
+            <AccordionSteps steps={parsedSimpleSteps} onImageClick={handleStepImageClick} />
+          </div>
         ) : (
           <MarkdownLite text={tutorial.content || ""} />
         )}
 
-        <div className="page-title" style={{ marginTop: 24 }}>
+        <div className="page-title" style={{ marginTop: 24 }} data-tour="tut-images">
           <h1 style={{ fontSize: 15 }}>
             Imagens<span className="count">{unassignedImages.length}</span>
           </h1>
