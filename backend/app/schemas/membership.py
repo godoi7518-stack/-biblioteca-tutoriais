@@ -8,6 +8,12 @@ class MembershipInvite(BaseModel):
     role: MembershipRole = MembershipRole.MEMBER
 
 
+class MemberRoleUpdate(BaseModel):
+    """Corpo do PATCH de troca de papel de um membro."""
+
+    role: MembershipRole
+
+
 class MemberResponse(BaseModel):
     """Membro de um workspace: dados da Membership + nome/e-mail do User.
 

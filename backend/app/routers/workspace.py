@@ -12,7 +12,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
 from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse
-from app.schemas.membership import MembershipInvite, MemberResponse
+from app.schemas.membership import MembershipInvite, MemberResponse, MemberRoleUpdate
 from app.models.membership import Membership, MembershipRole
 from app.core.dependencies import get_current_user, get_workspace_membership, require_admin
 
@@ -141,6 +141,115 @@ def list_members(
         .all()
     )
     return [_to_member_response(m, u) for m, u in rows]
+
+
+LAST_ADMIN_DETAIL = "O workspace precisa ter pelo menos um admin."
+
+
+def _get_member_of_workspace(db: Session, workspace_id: int, membership_id: int) -> Membership:
+    """Busca a membership pelo id GARANTINDO que ela é deste workspace.
+
+    Sem o filtro por workspace_id, um admin do workspace 1 poderia alterar
+    ou remover alguém do workspace 2 só trocando o id na URL (o
+    require_admin só confere o workspace da URL, não o membro alvo).
+    """
+    target = (
+        db.query(Membership)
+        .filter(Membership.id == membership_id, Membership.workspace_id == workspace_id)
+        .first()
+    )
+    if target is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Membro não encontrado neste workspace")
+    return target
+
+
+def _ensure_not_last_admin(db: Session, workspace_id: int, target: Membership, detail: str = LAST_ADMIN_DETAIL):
+    """Levanta 400 se target for o único admin do workspace.
+
+    Chamada antes de rebaixar ou remover alguém. Se o alvo não é admin,
+    não há risco e retorna direto. O with_for_update() trava as linhas de
+    admins até o commit: sem isso, dois admins se rebaixando ao mesmo tempo
+    passariam os dois pela contagem (cada um vê "2 admins") e o workspace
+    ficaria sem nenhum admin.
+    """
+    if target.role != MembershipRole.ADMIN:
+        return
+
+    admins = (
+        db.query(Membership)
+        .filter(Membership.workspace_id == workspace_id, Membership.role == MembershipRole.ADMIN)
+        .with_for_update()
+        .all()
+    )
+    if len(admins) <= 1:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+
+@router.patch("/{workspace_id}/members/{membership_id}", response_model=MemberResponse)
+def update_member_role(
+    data: MemberRoleUpdate,
+    workspace_id: int = Path(..., gt=0),
+    membership_id: int = Path(..., gt=0),
+    admin: Membership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Troca o papel (admin/member) de um membro. Exige ser admin do workspace.
+
+    O admin pode rebaixar a si mesmo, desde que não seja o último admin
+    (400). Levanta 404 se membership_id não for um membro deste workspace.
+    O dono (quem criou o workspace) é tratado como qualquer admin.
+    """
+    target = _get_member_of_workspace(db, workspace_id, membership_id)
+
+    if data.role != target.role:
+        if data.role == MembershipRole.MEMBER:
+            _ensure_not_last_admin(db, workspace_id, target)
+        target.role = data.role
+        db.commit()
+        db.refresh(target)
+
+    user = db.query(User).filter(User.id == target.user_id).first()
+    return _to_member_response(target, user)
+
+
+@router.delete("/{workspace_id}/members/{membership_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_member(
+    workspace_id: int = Path(..., gt=0),
+    membership_id: int = Path(..., gt=0),
+    admin: Membership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Remove um membro do workspace. Exige ser admin do workspace.
+
+    Apaga só o vínculo (membership): a conta do usuário e os tutoriais que
+    ele criou continuam existindo. Não deixa remover o último admin (400).
+    Levanta 404 se membership_id não for um membro deste workspace.
+    """
+    target = _get_member_of_workspace(db, workspace_id, membership_id)
+    _ensure_not_last_admin(db, workspace_id, target)
+    db.delete(target)
+    db.commit()
+
+
+@router.post("/{workspace_id}/leave", status_code=status.HTTP_204_NO_CONTENT)
+def leave_workspace(
+    workspace_id: int = Path(..., gt=0),
+    membership: Membership = Depends(get_workspace_membership),
+    db: Session = Depends(get_db),
+):
+    """O próprio usuário sai do workspace. Qualquer membro pode chamar.
+
+    Se quem sai é o último admin, levanta 400: ele precisa promover outra
+    pessoa antes, ou apagar o workspace.
+    """
+    _ensure_not_last_admin(
+        db,
+        workspace_id,
+        membership,
+        detail="Você é o único admin. Promova outro membro a admin antes de sair, ou apague o workspace.",
+    )
+    db.delete(membership)
+    db.commit()
 
 import os
 

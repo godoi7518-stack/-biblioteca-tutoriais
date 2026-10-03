@@ -350,8 +350,10 @@ input { font-family: inherit; }
 .members-table td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: var(--text); }
 .members-table tbody tr:last-child td { border-bottom: none; }
 .members-table tbody tr:hover { background: var(--blue-100); }
+/* Coluna de ações (⋮) da tabela de membros: estreita e alinhada à direita. */
+.members-table .col-actions { width: 1%; text-align: right; white-space: nowrap; }
 .invite-form { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 14px 0; margin-bottom: 18px; }
 .invite-form-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
 .invite-form-email { flex: 1; min-width: 220px; }
-.invite-form select { padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
+.invite-form select, .members-table select { padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
 .invite-form-submit { width: auto; margin: 0 0 16px; }
