@@ -51,7 +51,7 @@ def create_workspace(
     db.add(membership)
     db.commit()
 
-    return workspace
+    return WorkspaceResponse.with_role(workspace, MembershipRole.ADMIN)
 
 
 @router.get("", response_model=list[WorkspaceResponse])
@@ -59,13 +59,20 @@ def list_my_workspaces(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Lista os workspaces em que o usuário logado é membro (admin ou member)."""
-    return (
-        db.query(Workspace)
+    """Lista os workspaces em que o usuário logado é membro (admin ou member),
+    cada um com o papel dele (my_role).
+
+    O papel já vem na mesma query: o JOIN com memberships existia para
+    filtrar os workspaces do usuário, então basta pedir a coluna role junto.
+    """
+    rows = (
+        db.query(Workspace, Membership.role)
         .join(Membership, Membership.workspace_id == Workspace.id)
         .filter(Membership.user_id == current_user.id)
+        .order_by(Workspace.created_at, Workspace.id)
         .all()
     )
+    return [WorkspaceResponse.with_role(ws, role) for ws, role in rows]
 
 
 @router.get("/{workspace_id}", response_model=WorkspaceResponse)
@@ -74,11 +81,13 @@ def get_workspace(
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
-    """Retorna um workspace específico. Exige ser membro dele (admin ou member)."""
+    """Retorna um workspace específico, com o papel do usuário (my_role).
+    Exige ser membro dele (admin ou member).
+    """
     workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
     if workspace is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace não encontrado")
-    return workspace
+    return WorkspaceResponse.with_role(workspace, membership.role)
 
 
 @router.post("/{workspace_id}/members", response_model=MemberResponse)

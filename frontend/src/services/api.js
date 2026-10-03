@@ -191,7 +191,11 @@ export async function listSteps(workspaceId, tabId, tutorialId) {
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}/steps`);
 }
 
-export async function searchTutorials(q) {
+/**
+ * Busca global. Devolve { workspaces, tutorials }: workspaces pelo nome e
+ * tutoriais pelo título/resumo/conteúdo, só dos workspaces do usuário.
+ */
+export async function search(q) {
   return apiFetch(`/search?q=${encodeURIComponent(q)}`);
 }
 

@@ -86,11 +86,15 @@ export default function WorkspacesPage({ user, onOpen }) {
               <div className="tile-icon">{initials(ws.name)}</div>
               <div className="tile-title">{ws.name}</div>
             </button>
-            <div className="tile-menu">
-              <OptionsMenu
-                items={[{ label: "Excluir workspace", danger: true, onClick: () => handleDelete(ws.id) }]}
-              />
-            </div>
+            {/* Só o admin do workspace pode apagá-lo. Esconder o menu é
+                conforto visual; quem barra de verdade é o require_admin. */}
+            {ws.my_role === "admin" && (
+              <div className="tile-menu">
+                <OptionsMenu
+                  items={[{ label: "Excluir workspace", danger: true, onClick: () => handleDelete(ws.id) }]}
+                />
+              </div>
+            )}
           </div>
         ))}
       </div>

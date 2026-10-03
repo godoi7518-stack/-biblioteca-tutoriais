@@ -18,6 +18,11 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   const [formContent, setFormContent] = useState("");
   const [formSteps, setFormSteps] = useState([{ title: "", content: "", is_critical: false }]);
   const [formError, setFormError] = useState("");
+
+  // Papel do usuário neste workspace (vem do backend junto com o workspace).
+  // Esconde os botões de criar/apagar para membros comuns; a permissão de
+  // verdade continua sendo checada pelo require_admin no backend.
+  const isAdmin = workspace.my_role === "admin";
   const [submitting, setSubmitting] = useState(false);
 
   const currentTabId = activeTabId || tabs[0]?.id;
@@ -186,9 +191,11 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
           <button className="btn-new" onClick={onOpenMembers}>
             Membros
           </button>
-          <button className="btn-new" onClick={handleCreateTab} disabled={creatingTab}>
-            <PlusIcon /> {creatingTab ? "Criando…" : "Nova categoria"}
-          </button>
+          {isAdmin && (
+            <button className="btn-new" onClick={handleCreateTab} disabled={creatingTab}>
+              <PlusIcon /> {creatingTab ? "Criando…" : "Nova categoria"}
+            </button>
+          )}
         </div>
       </div>
 
@@ -201,9 +208,11 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
             >
               {t.name}
             </button>
-            <OptionsMenu
-              items={[{ label: "Excluir categoria", danger: true, onClick: () => handleDeleteTab(t.id) }]}
-            />
+            {isAdmin && (
+              <OptionsMenu
+                items={[{ label: "Excluir categoria", danger: true, onClick: () => handleDeleteTab(t.id) }]}
+              />
+            )}
           </div>
         ))}
       </div>
@@ -212,7 +221,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
         <h1 style={{ fontSize: "15px" }}>
           Tutoriais<span className="count">{tutorials.length}</span>
         </h1>
-        {currentTabId && (
+        {isAdmin && currentTabId && (
           <button className="btn-new" onClick={openNewTutorialForm}>
             <PlusIcon /> Novo tutorial
           </button>
@@ -222,7 +231,9 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
       <div className="tut-list">
         {loadingTutorials && <div className="empty-state">Carregando tutoriais…</div>}
         {!loadingTutorials && tabs.length === 0 && (
-          <div className="empty-state">Nenhuma categoria ainda. Crie a primeira acima.</div>
+          <div className="empty-state">
+            {isAdmin ? "Nenhuma categoria ainda. Crie a primeira acima." : "Nenhuma categoria ainda."}
+          </div>
         )}
         {!loadingTutorials && tabs.length > 0 && tutorials.length === 0 && (
           <div className="empty-state">Nenhum tutorial nesta categoria ainda.</div>
@@ -243,9 +254,11 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
                 </div>
               </button>
               <span className="tut-tag">{t.content_type === "structured" ? "PASSOS" : "TEXTO"}</span>
-              <OptionsMenu
-                items={[{ label: "Excluir tutorial", danger: true, onClick: () => handleDeleteTutorial(t.id) }]}
-              />
+              {isAdmin && (
+                <OptionsMenu
+                  items={[{ label: "Excluir tutorial", danger: true, onClick: () => handleDeleteTutorial(t.id) }]}
+                />
+              )}
             </div>
           ))}
       </div>
