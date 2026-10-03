@@ -6,6 +6,7 @@ import { getTutorial, listSteps, listImages, uploadImage, deleteImage, deleteTut
 import ImageLightbox from "../components/ImageLightbox";
 import OptionsMenu from "../components/OptionsMenu";
 import TutorialForm from "../components/TutorialForm";
+import { useDialog } from "../components/DialogProvider";
 
 export default function TutorialDetailPage({ workspace, tabId, tutorialId, initialTutorial, onDeleted, onUpdated }) {
   const [tutorial, setTutorial] = useState(initialTutorial || null);
@@ -17,6 +18,7 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
   const fileInputRef = useRef(null);
   const [lightboxIndex, setLightboxIndex] = useState(null);
   const [editing, setEditing] = useState(false);
+  const dialog = useDialog();
   // Incrementado depois de salvar uma edição: entra nas dependências do
   // useEffect abaixo e força recarregar tutorial, passos e imagens.
   const [reloadKey, setReloadKey] = useState(0);
@@ -56,27 +58,42 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
     };
   }, [workspace.id, tabId, tutorialId, reloadKey]);
 
-  function handleFileSelected(e) {
+  async function handleFileSelected(e) {
     const file = e.target.files[0];
     e.target.value = "";
     if (!file) return;
 
-    const caption = window.prompt("Legenda da imagem (opcional):") || null;
+    // Salvar com o campo vazio envia sem legenda; Cancelar desiste do envio.
+    const caption = await dialog.prompt({
+      title: "Legenda da imagem",
+      message: file.name,
+      label: "Legenda (opcional)",
+      maxLength: 200,
+      required: false,
+      confirmLabel: "Enviar imagem",
+    });
+    if (caption === null) return;
 
     setUploading(true);
-    uploadImage(workspace.id, tabId, tutorialId, file, caption)
+    uploadImage(workspace.id, tabId, tutorialId, file, caption || null)
       .then(() => loadImages())
-      .catch((err) => alert(err.message))
+      .catch((err) => dialog.alert(err.message))
       .finally(() => setUploading(false));
   }
 
   async function handleDeleteImage(imageId) {
-    if (!window.confirm("Remover esta imagem?")) return;
+    const ok = await dialog.confirm({
+      title: "Remover imagem",
+      message: "A imagem será apagada deste tutorial.",
+      confirmLabel: "Remover",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteImage(workspace.id, tabId, tutorialId, imageId);
       loadImages();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     }
   }
 
@@ -88,12 +105,18 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
   }
 
   async function handleDeleteTutorial() {
-    if (!window.confirm("Apagar este tutorial e suas imagens? Essa ação não pode ser desfeita.")) return;
+    const ok = await dialog.confirm({
+      title: "Apagar tutorial",
+      message: "O tutorial e suas imagens serão apagados. Essa ação não pode ser desfeita.",
+      confirmLabel: "Apagar tutorial",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTutorial(workspace.id, tabId, tutorialId);
       onDeleted();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     }
   }
 

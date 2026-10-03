@@ -1,4 +1,11 @@
+/* ---------- Tokens de cor ----------
+   Modo claro é o padrão. O modo escuro vale quando:
+   - o usuário escolheu escuro no botão do header (data-theme="dark"), ou
+   - não escolheu nada e o sistema operacional está em modo escuro.
+   O atributo data-theme é definido em src/utils/theme.js (e já no
+   index.html, antes do React carregar, para a tela não piscar). */
 :root {
+  color-scheme: light;
   --blue-900: #0a3d6e;
   --blue-700: #0a6ed1;
   --blue-500: #3a94e0;
@@ -11,14 +18,16 @@
   --text-muted: #5a6b7b;
   --critical: #b3261e;
   --critical-bg: #fbe9e8;
+  --title-color: #1d2d3e;
+  --subtitle-color: #5a6b7b;
+  --icon-simple-bg: #e7edf3;
   --radius: 2px;
-  --title-color: #f5efe0;
-  --subtitle-color: #b3a893;
   --font-ui: "IBM Plex Sans", -apple-system, Segoe UI, Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", Menlo, Consolas, monospace;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #161d24;
     --surface: #1f2933;
     --border: #33414d;
@@ -26,9 +35,13 @@
     --text-muted: #9fb0bd;
     --blue-100: #1a2c3d;
     --critical-bg: #3a1f1d;
+    --title-color: #f5efe0;
+    --subtitle-color: #b3a893;
+    --icon-simple-bg: #2a3642;
   }
 }
 :root[data-theme="dark"] {
+  color-scheme: dark;
   --bg: #161d24;
   --surface: #1f2933;
   --border: #33414d;
@@ -36,6 +49,9 @@
   --text-muted: #9fb0bd;
   --blue-100: #1a2c3d;
   --critical-bg: #3a1f1d;
+  --title-color: #f5efe0;
+  --subtitle-color: #b3a893;
+  --icon-simple-bg: #2a3642;
 }
 
 * { box-sizing: border-box; }
@@ -114,44 +130,80 @@ input { font-family: inherit; }
 .link-button:hover { color: var(--blue-900); }
 .link-button:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
-/* ---------- Shell ---------- */
+/* ---------- Shell (header) ---------- */
 .shell-header {
-  background: var(--navy); color: #fff; height: 52px;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 16px; position: sticky; top: 0; z-index: 10;
+  background: var(--navy); color: #fff; min-height: 52px;
+  display: flex; align-items: center; gap: 16px;
+  padding: 8px 16px; position: sticky; top: 0; z-index: 10;
 }
-.shell-header .left { display: flex; align-items: center; gap: 12px; min-width: 0; }
-.shell-header .app-name { font-weight: 600; font-size: 15px; white-space: nowrap; }
-.shell-header .app-name .dim { color: #a9bacb; font-weight: 400; margin-left: 4px; font-size: 12.5px; }
+.app-name {
+  background: none; border: none; padding: 0; color: #fff;
+  font-weight: 600; font-size: 15px; white-space: nowrap;
+}
+.app-name:hover { color: #cfe0ee; }
 .header-search {
-  display: flex; align-items: center; background: rgba(255, 255, 255, 0.12);
-  border-radius: var(--radius); padding: 6px 10px; gap: 6px;
-  min-width: 220px; flex: 1; max-width: 420px; margin: 0 20px;
+  display: flex; align-items: center; gap: 6px;
+  background: rgba(255, 255, 255, 0.12); border-radius: var(--radius);
+  padding: 6px 10px; flex: 1; max-width: 460px; margin: 0 auto;
 }
-.header-search input { background: transparent; border: none; color: #fff; font-size: 13px; width: 100%; }
+.header-search input { background: transparent; border: none; color: #fff; font-size: 13px; width: 100%; outline: none; }
 .header-search input::placeholder { color: #b8c6d4; }
+.header-search:focus-within { outline: 2px solid var(--blue-500); }
 .header-search svg { flex-shrink: 0; opacity: 0.85; }
-.shell-header .right { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.header-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .role-badge {
   font-size: 10.5px; font-weight: 600; letter-spacing: 0.3px;
   padding: 3px 8px; border-radius: 10px; background: rgba(255, 255, 255, 0.15); color: #fff;
 }
 .role-badge.admin { background: #d98a1c; color: #241a05; }
+.theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08); border: none; color: #fff;
+}
+.theme-toggle:hover { background: rgba(255, 255, 255, 0.18); }
 .user-chip {
-  display: flex; align-items: center; gap: 8px;
+  display: flex; align-items: center; gap: 8px; min-width: 0;
   background: rgba(255, 255, 255, 0.08); padding: 5px 10px 5px 6px; border-radius: 16px;
 }
+.user-name { max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .avatar {
-  width: 24px; height: 24px; border-radius: 50%; background: var(--blue-500); color: #fff;
+  width: 24px; height: 24px; border-radius: 50%; background: var(--blue-500); color: #fff; flex-shrink: 0;
   font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center;
 }
 .logout-link { background: transparent; border: none; color: #cfe0ee; font-size: 12.5px; text-decoration: underline; padding: 0; }
+.shell-header button:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
-.breadcrumb { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; padding: 14px 24px 0; font-size: 12.5px; color: var(--text-muted); }
-.breadcrumb button { background: none; border: none; color: var(--blue-700); font-size: 12.5px; padding: 0; }
-.breadcrumb button:hover { text-decoration: underline; }
-.breadcrumb .current { color: var(--text); font-weight: 600; }
-.breadcrumb .sep { color: var(--border); }
+/* Tela estreita: nome + botões na primeira linha, busca ocupando a
+   segunda linha inteira (antes os elementos se sobrepunham). */
+@media (max-width: 720px) {
+  .shell-header { flex-wrap: wrap; gap: 8px 12px; }
+  .header-right { margin-left: auto; }
+  .header-search { order: 3; flex-basis: 100%; max-width: none; margin: 0; }
+  .user-name { display: none; }
+}
+
+/* ---------- Breadcrumb ("você está aqui") ---------- */
+.breadcrumb {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 4px;
+  padding: 14px 14px 0; max-width: 1100px; margin: 0 auto; font-size: 12.5px;
+}
+.crumb-wrap { display: inline-flex; align-items: center; gap: 4px; min-width: 0; }
+.crumb {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 260px;
+  padding: 5px 10px; border-radius: 14px; border: 1px solid transparent;
+  background: none; color: var(--blue-700); font-size: 12.5px; font-weight: 500;
+}
+.crumb svg { flex-shrink: 0; }
+.crumb-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+button.crumb:hover { background: var(--blue-100); }
+button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 1px; }
+/* Tela atual: "pílula" destacada, não clicável. */
+.crumb.current {
+  background: var(--blue-100); border-color: var(--blue-500);
+  color: var(--title-color); font-weight: 600;
+}
+.crumb-sep { color: var(--text-muted); font-size: 14px; padding: 0 2px; }
 
 .content { padding: 16px 24px 48px; max-width: 1100px; margin: 0 auto; }
 .page-title { display: flex; align-items: baseline; justify-content: space-between; margin: 6px 0 18px; flex-wrap: wrap; gap: 10px; }
@@ -210,7 +262,7 @@ input { font-family: inherit; }
 .tut-row:last-child { border-bottom: none; }
 .tut-row:hover { background: var(--blue-100); }
 .tut-icon { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; }
-.tut-icon.simple { background: #e7edf3; color: var(--text-muted); }
+.tut-icon.simple { background: var(--icon-simple-bg); color: var(--text-muted); }
 .tut-icon.structured { background: var(--blue-100); color: var(--blue-700); }
 /* Resultado de busca do tipo workspace: mesmas cores do ícone dos tiles. */
 .tut-icon.workspace { background: var(--blue-700); color: #fff; }
@@ -366,3 +418,25 @@ input { font-family: inherit; }
 .invite-form-email { flex: 1; min-width: 220px; }
 .invite-form select, .members-table select { padding: 9px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; font-family: inherit; }
 .invite-form-submit { width: auto; margin: 0 0 16px; }
+
+/* ---------- Janelas (Modal / DialogProvider) ---------- */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 50; padding: 24px;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+}
+.modal-card {
+  width: 100%; max-width: 420px; max-height: 85vh; overflow-y: auto;
+  background: var(--surface); color: var(--text);
+  border-radius: var(--radius); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  padding: 28px 28px 24px;
+}
+.modal-card.wide { max-width: 560px; }
+.modal-title { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: var(--title-color); }
+.modal-message { margin: 0 0 18px; font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-line; }
+.modal-actions { display: flex; gap: 8px; margin-top: 6px; }
+.modal-actions > button { flex: 1; margin-top: 0; justify-content: center; font-size: 13.5px; padding: 9px 12px; }
+.btn-primary:disabled { opacity: 0.5; cursor: default; }
+.btn-danger { background: var(--critical); }
+.btn-danger:hover { background: #8f1e18; }
+

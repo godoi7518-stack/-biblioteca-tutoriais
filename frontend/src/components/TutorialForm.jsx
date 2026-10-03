@@ -12,6 +12,8 @@
 import { useState, useRef } from "react";
 import { createTutorial, updateTutorial, uploadImage, deleteImage, API_URL } from "../services/api";
 import { PlusIcon } from "./Icons";
+import Modal from "./Modal";
+import { useDialog } from "./DialogProvider";
 
 const textareaStyle = {
   width: "100%",
@@ -26,6 +28,7 @@ const textareaStyle = {
 
 export default function TutorialForm({ workspaceId, tabId, tutorial, steps, images, onSaved, onCancel }) {
   const isEdit = Boolean(tutorial);
+  const dialog = useDialog();
 
   // Cada passo do formulário ganha uma "key" própria e estável. Usar o
   // índice como key do React quebraria ao reordenar (o campo de arquivo
@@ -152,197 +155,180 @@ export default function TutorialForm({ workspaceId, tabId, tutorial, steps, imag
     setSubmitting(false);
 
     if (failures.length > 0) {
-      alert("O tutorial foi salvo, mas algumas imagens falharam:\n\n" + failures.join("\n"));
+      await dialog.alert({
+        title: "Tutorial salvo com avisos",
+        message: "O tutorial foi salvo, mas algumas imagens falharam:\n\n" + failures.join("\n"),
+      });
     }
     onSaved(saved);
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 50,
-        padding: 24,
-      }}
-      onClick={onCancel}
-    >
-      <div
-        className="login-card"
-        style={{ maxWidth: 560, width: "100%", maxHeight: "85vh", overflowY: "auto" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 style={{ marginTop: 0, marginBottom: 18, fontSize: 16 }}>{isEdit ? "Editar tutorial" : "Novo tutorial"}</h2>
+    <Modal title={isEdit ? "Editar tutorial" : "Novo tutorial"} onClose={onCancel} wide>
+      {error && <div className="login-error">{error}</div>}
 
-        {error && <div className="login-error">{error}</div>}
+      <form onSubmit={handleSubmit}>
+        <div className="field">
+          <label htmlFor="tut-title">Título</label>
+          <input id="tut-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+        </div>
+        <div className="field">
+          <label htmlFor="tut-summary">Resumo (opcional)</label>
+          <input id="tut-summary" value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} />
+        </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="tut-title">Título</label>
-            <input id="tut-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
-          </div>
-          <div className="field">
-            <label htmlFor="tut-summary">Resumo (opcional)</label>
-            <input id="tut-summary" value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} />
-          </div>
-
-          <div className="field">
-            <label>Tipo de tutorial</label>
-            {isEdit ? (
-              // Tipo é fixo depois de criado: converter arriscaria perder
-              // o texto ou os passos/imagens existentes.
-              <p className="login-note" style={{ marginTop: 0 }}>
-                {type === "structured" ? "Passo a passo" : "Texto corrido"} — o tipo não pode ser alterado depois de criado.
-              </p>
-            ) : (
-              <div className="type-toggle">
-                <button
-                  type="button"
-                  className={"type-toggle-btn" + (type === "simple" ? " active" : "")}
-                  onClick={() => setType("simple")}
-                >
-                  Texto corrido
-                </button>
-                <button
-                  type="button"
-                  className={"type-toggle-btn" + (type === "structured" ? " active" : "")}
-                  onClick={() => setType("structured")}
-                >
-                  Passo a passo
-                </button>
-              </div>
-            )}
-          </div>
-
-          {type === "simple" ? (
-            <div className="field">
-              <label htmlFor="tut-content">Conteúdo</label>
-              <textarea
-                id="tut-content"
-                rows={6}
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                required
-                style={{ ...textareaStyle, fontSize: 14 }}
-              />
-            </div>
+        <div className="field">
+          <label>Tipo de tutorial</label>
+          {isEdit ? (
+            // Tipo é fixo depois de criado: converter arriscaria perder
+            // o texto ou os passos/imagens existentes.
+            <p className="login-note" style={{ marginTop: 0 }}>
+              {type === "structured" ? "Passo a passo" : "Texto corrido"} — o tipo não pode ser alterado depois de criado.
+            </p>
           ) : (
-            <div className="field">
-              <label>Passos</label>
-              {formSteps.map((step, i) => (
-                <div className="step-builder" key={step.key}>
-                  <div className="step-builder-header">
-                    <span className="step-builder-num">Passo {i + 1}</span>
-                    <div className="step-builder-actions">
-                      <button
-                        type="button"
-                        className="step-builder-move"
-                        onClick={() => moveStep(i, -1)}
-                        disabled={i === 0}
-                        aria-label={`Mover passo ${i + 1} para cima`}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="step-builder-move"
-                        onClick={() => moveStep(i, 1)}
-                        disabled={i === formSteps.length - 1}
-                        aria-label={`Mover passo ${i + 1} para baixo`}
-                      >
-                        ↓
-                      </button>
-                      {formSteps.length > 1 && (
-                        <button
-                          type="button"
-                          className="step-builder-remove"
-                          onClick={() => setFormSteps((prev) => prev.filter((_, idx) => idx !== i))}
-                        >
-                          Remover
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <input
-                    placeholder="Título do passo"
-                    value={step.title}
-                    onChange={(e) => updateStep(i, "title", e.target.value)}
-                    maxLength={150}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <textarea
-                    placeholder="O que deve ser feito neste passo"
-                    rows={3}
-                    value={step.content}
-                    onChange={(e) => updateStep(i, "content", e.target.value)}
-                    style={{ ...textareaStyle, fontSize: 13 }}
-                  />
-                  <label className="step-critical-toggle">
-                    <input
-                      type="checkbox"
-                      checked={step.is_critical}
-                      onChange={(e) => updateStep(i, "is_critical", e.target.checked)}
-                    />
-                    Marcar como etapa crítica
-                  </label>
-
-                  {step.existingImages.length > 0 && (
-                    <div className="step-image-row">
-                      {step.existingImages.map((img) => (
-                        <div
-                          key={img.id}
-                          className={"step-image-thumb editable" + (img.removed ? " removed" : "")}
-                        >
-                          <img src={`${API_URL}${img.image_url}`} alt={img.caption || `Imagem do passo ${i + 1}`} />
-                          <button
-                            type="button"
-                            className="image-thumb-remove"
-                            onClick={() => toggleExistingImage(i, img.id)}
-                            title={img.removed ? "Manter imagem" : "Remover imagem"}
-                          >
-                            {img.removed ? "↺" : "×"}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <label className="step-image-upload">
-                    <span>{step.existingImages.length > 0 ? "Adicionar outra imagem (opcional)" : "Imagem do passo (opcional)"}</span>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={(e) => updateStep(i, "image", e.target.files[0] || null)}
-                    />
-                    {step.image && <span className="step-image-filename">{step.image.name}</span>}
-                  </label>
-                </div>
-              ))}
+            <div className="type-toggle">
               <button
                 type="button"
-                className="btn-new"
-                onClick={() => setFormSteps((prev) => [...prev, emptyStep()])}
-                style={{ marginTop: 4 }}
+                className={"type-toggle-btn" + (type === "simple" ? " active" : "")}
+                onClick={() => setType("simple")}
               >
-                <PlusIcon /> Adicionar passo
+                Texto corrido
+              </button>
+              <button
+                type="button"
+                className={"type-toggle-btn" + (type === "structured" ? " active" : "")}
+                onClick={() => setType("structured")}
+              >
+                Passo a passo
               </button>
             </div>
           )}
+        </div>
 
-          <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-            <button type="button" className="btn-new" style={{ flex: 1 }} onClick={onCancel}>
-              Cancelar
-            </button>
-            <button className="btn-primary" style={{ flex: 1, marginTop: 0 }} disabled={submitting}>
-              {submitting ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar tutorial"}
+        {type === "simple" ? (
+          <div className="field">
+            <label htmlFor="tut-content">Conteúdo</label>
+            <textarea
+              id="tut-content"
+              rows={6}
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              required
+              style={{ ...textareaStyle, fontSize: 14 }}
+            />
+          </div>
+        ) : (
+          <div className="field">
+            <label>Passos</label>
+            {formSteps.map((step, i) => (
+              <div className="step-builder" key={step.key}>
+                <div className="step-builder-header">
+                  <span className="step-builder-num">Passo {i + 1}</span>
+                  <div className="step-builder-actions">
+                    <button
+                      type="button"
+                      className="step-builder-move"
+                      onClick={() => moveStep(i, -1)}
+                      disabled={i === 0}
+                      aria-label={`Mover passo ${i + 1} para cima`}
+                    >
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="step-builder-move"
+                      onClick={() => moveStep(i, 1)}
+                      disabled={i === formSteps.length - 1}
+                      aria-label={`Mover passo ${i + 1} para baixo`}
+                    >
+                      ↓
+                    </button>
+                    {formSteps.length > 1 && (
+                      <button
+                        type="button"
+                        className="step-builder-remove"
+                        onClick={() => setFormSteps((prev) => prev.filter((_, idx) => idx !== i))}
+                      >
+                        Remover
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  placeholder="Título do passo"
+                  value={step.title}
+                  onChange={(e) => updateStep(i, "title", e.target.value)}
+                  maxLength={150}
+                  style={{ marginBottom: 8 }}
+                />
+                <textarea
+                  placeholder="O que deve ser feito neste passo"
+                  rows={3}
+                  value={step.content}
+                  onChange={(e) => updateStep(i, "content", e.target.value)}
+                  style={{ ...textareaStyle, fontSize: 13 }}
+                />
+                <label className="step-critical-toggle">
+                  <input
+                    type="checkbox"
+                    checked={step.is_critical}
+                    onChange={(e) => updateStep(i, "is_critical", e.target.checked)}
+                  />
+                  Marcar como etapa crítica
+                </label>
+
+                {step.existingImages.length > 0 && (
+                  <div className="step-image-row">
+                    {step.existingImages.map((img) => (
+                      <div
+                        key={img.id}
+                        className={"step-image-thumb editable" + (img.removed ? " removed" : "")}
+                      >
+                        <img src={`${API_URL}${img.image_url}`} alt={img.caption || `Imagem do passo ${i + 1}`} />
+                        <button
+                          type="button"
+                          className="image-thumb-remove"
+                          onClick={() => toggleExistingImage(i, img.id)}
+                          title={img.removed ? "Manter imagem" : "Remover imagem"}
+                        >
+                          {img.removed ? "↺" : "×"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <label className="step-image-upload">
+                  <span>{step.existingImages.length > 0 ? "Adicionar outra imagem (opcional)" : "Imagem do passo (opcional)"}</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={(e) => updateStep(i, "image", e.target.files[0] || null)}
+                  />
+                  {step.image && <span className="step-image-filename">{step.image.name}</span>}
+                </label>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn-new"
+              onClick={() => setFormSteps((prev) => [...prev, emptyStep()])}
+              style={{ marginTop: 4 }}
+            >
+              <PlusIcon /> Adicionar passo
             </button>
           </div>
-        </form>
-      </div>
-    </div>
+        )}
+
+        <div className="modal-actions" style={{ marginTop: 14 }}>
+          <button type="button" className="btn-new" onClick={onCancel}>
+            Cancelar
+          </button>
+          <button className="btn-primary" disabled={submitting}>
+            {submitting ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar tutorial"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }

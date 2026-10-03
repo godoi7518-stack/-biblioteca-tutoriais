@@ -3,6 +3,7 @@ import { listTabs, createTab, updateTab, deleteTab, listTutorials, deleteTutoria
 import { PlusIcon } from "../components/Icons";
 import OptionsMenu from "../components/OptionsMenu";
 import TutorialForm from "../components/TutorialForm";
+import { useDialog } from "../components/DialogProvider";
 
 export default function TabsPage({ user, workspace, activeTabId, onSelectTab, onOpenTutorial, onOpenMembers }) {
   const [tabs, setTabs] = useState([]);
@@ -15,6 +16,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   // O formulário de novo tutorial é o componente TutorialForm (o mesmo da
   // edição); aqui só controlamos se ele está aberto.
   const [showForm, setShowForm] = useState(false);
+  const dialog = useDialog();
 
   // Papel do usuário neste workspace (vem do backend junto com o workspace).
   // Esconde os botões de criar/apagar para membros comuns; a permissão de
@@ -50,7 +52,13 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   }
 
   async function handleCreateTab() {
-    const name = window.prompt("Nome da nova categoria:");
+    const name = await dialog.prompt({
+      title: "Nova categoria",
+      label: "Nome da categoria",
+      placeholder: "Ex.: Reimpressões",
+      maxLength: 120,
+      confirmLabel: "Criar categoria",
+    });
     if (!name) return;
 
     setCreatingTab(true);
@@ -58,48 +66,65 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
       await createTab(workspace.id, name);
       loadTabs();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     } finally {
       setCreatingTab(false);
     }
   }
 
   async function handleRenameTab(tab) {
-    const name = window.prompt("Novo nome da categoria:", tab.name);
-    if (name === null || !name.trim() || name.trim() === tab.name) return;
+    const name = await dialog.prompt({
+      title: "Renomear categoria",
+      label: "Nome da categoria",
+      defaultValue: tab.name,
+      maxLength: 120,
+    });
+    if (!name || name === tab.name) return;
 
     try {
       // O PUT substitui todos os campos da categoria: repete descrição e
       // posição atuais para que só o nome mude.
       await updateTab(workspace.id, tab.id, {
-        name: name.trim(),
+        name,
         description: tab.description,
         position: tab.position,
       });
       loadTabs();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     }
   }
 
   async function handleDeleteTab(tabId) {
-    if (!window.confirm("Apagar esta categoria e todos os tutoriais dentro dela?")) return;
+    const ok = await dialog.confirm({
+      title: "Apagar categoria",
+      message: "Todos os tutoriais e imagens dentro dela também serão apagados. Essa ação não pode ser desfeita.",
+      confirmLabel: "Apagar categoria",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTab(workspace.id, tabId);
       if (tabId === currentTabId) onSelectTab(null);
       loadTabs();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     }
   }
 
   async function handleDeleteTutorial(tutorialId) {
-    if (!window.confirm("Apagar este tutorial e suas imagens? Essa ação não pode ser desfeita.")) return;
+    const ok = await dialog.confirm({
+      title: "Apagar tutorial",
+      message: "O tutorial e suas imagens serão apagados. Essa ação não pode ser desfeita.",
+      confirmLabel: "Apagar tutorial",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTutorial(workspace.id, currentTabId, tutorialId);
       loadTutorials(currentTabId);
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     }
   }
 
@@ -182,7 +207,9 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
             <div className="tut-row" key={t.id}>
               <button
                 className="tut-row-clickable"
-                onClick={() => onOpenTutorial({ ...t, tabId: currentTabId })}
+                onClick={() =>
+                  onOpenTutorial({ ...t, tabId: currentTabId, tabName: tabs.find((tab) => tab.id === currentTabId)?.name })
+                }
               >
                 <div className={"tut-icon " + t.content_type}>
                   {t.content_type === "structured" ? "≡" : "T"}
