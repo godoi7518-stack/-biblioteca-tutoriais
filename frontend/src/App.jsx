@@ -132,7 +132,16 @@ export default function App() {
           onDeleted={() => setView({ page: "tabs", workspace: view.workspace, tabId: view.tabId })}
         />
       ) : view.page === "members" ? (
-        <MembersPage user={user} workspace={view.workspace} />
+        <MembersPage
+          user={user}
+          workspace={view.workspace}
+          // Se o usuário trocou o PRÓPRIO papel, o my_role guardado no view
+          // ficou velho: atualiza para os botões de admin das outras telas
+          // aparecerem/sumirem certo ao voltar pelo breadcrumb.
+          onMyRoleChanged={(role) => setView({ ...view, workspace: { ...view.workspace, my_role: role } })}
+          // Saiu do workspace: não tem mais acesso a ele, volta para a lista.
+          onLeft={() => setView({ page: "workspaces" })}
+        />
       ) : null}
     </div>
   );

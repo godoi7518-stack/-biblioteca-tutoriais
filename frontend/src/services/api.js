@@ -15,6 +15,7 @@ const FIELD_LABELS = {
   email: "E-mail",
   matricula: "Matrícula",
   password: "Senha",
+  role: "Papel",
   username: "E-mail",
   title: "Título",
 };
@@ -258,4 +259,23 @@ export async function inviteMember(workspaceId, email, role) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, role }),
   });
+}
+
+/** Troca o papel de um membro (só admin). membershipId é o "id" de MemberResponse. */
+export async function updateMemberRole(workspaceId, membershipId, role) {
+  return apiFetch(`/workspaces/${workspaceId}/members/${membershipId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ role }),
+  });
+}
+
+/** Remove um membro do workspace (só admin). Não apaga a conta do usuário. */
+export async function removeMember(workspaceId, membershipId) {
+  return apiFetch(`/workspaces/${workspaceId}/members/${membershipId}`, { method: "DELETE" });
+}
+
+/** O usuário logado sai do workspace (qualquer membro). */
+export async function leaveWorkspace(workspaceId) {
+  return apiFetch(`/workspaces/${workspaceId}/leave`, { method: "POST" });
 }

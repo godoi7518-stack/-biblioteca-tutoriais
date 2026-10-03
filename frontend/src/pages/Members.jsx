@@ -1,15 +1,17 @@
 /**
- * Página de membros de um workspace. Qualquer membro vê a lista; o
- * formulário de convite só aparece para admin. O papel do usuário logado
- * vem no próprio workspace (my_role), devolvido pelo backend.
+ * Página de membros de um workspace. Qualquer membro vê a lista e pode sair
+ * do workspace; convidar, trocar papel e remover só aparecem para admin. O
+ * papel do usuário logado vem no próprio workspace (my_role), devolvido
+ * pelo backend.
  */
 
 import { useState, useEffect } from "react";
-import { listMembers, inviteMember } from "../services/api";
+import { listMembers, inviteMember, updateMemberRole, removeMember, leaveWorkspace } from "../services/api";
+import OptionsMenu from "../components/OptionsMenu";
 
 const ROLE_LABELS = { admin: "ADMIN", member: "MEMBRO" };
 
-export default function MembersPage({ user, workspace }) {
+export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -18,6 +20,13 @@ export default function MembersPage({ user, workspace }) {
   const [inviteRole, setInviteRole] = useState("member");
   const [inviteError, setInviteError] = useState("");
   const [inviting, setInviting] = useState(false);
+
+  // Erro de trocar papel / remover / sair (ex.: "O workspace precisa ter
+  // pelo menos um admin."), mostrado acima da tabela.
+  const [actionError, setActionError] = useState("");
+  // id da membership sendo alterada agora, para travar o seletor dela
+  // enquanto a requisição não volta.
+  const [busyId, setBusyId] = useState(null);
 
   const isAdmin = workspace.my_role === "admin";
 
@@ -52,6 +61,54 @@ export default function MembersPage({ user, workspace }) {
     }
   }
 
+  async function handleRoleChange(member, role) {
+    const isSelf = member.user_id === user.id;
+    if (isSelf && role === "member") {
+      const ok = window.confirm(
+        "Você deixará de ser admin deste workspace e não poderá mais criar, editar ou apagar conteúdo. Continuar?"
+      );
+      if (!ok) return;
+    }
+
+    setActionError("");
+    setBusyId(member.id);
+    try {
+      const updated = await updateMemberRole(workspace.id, member.id, role);
+      setMembers((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+      if (isSelf) onMyRoleChanged(updated.role);
+    } catch (err) {
+      // O seletor é "controlado" pelo valor da lista (que não mudou), então
+      // ele volta sozinho para o papel antigo quando a troca falha.
+      setActionError(err.message);
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function handleRemove(member) {
+    if (!window.confirm(`Remover ${member.name} deste workspace? A conta dele continua existindo.`)) return;
+
+    setActionError("");
+    try {
+      await removeMember(workspace.id, member.id);
+      setMembers((prev) => prev.filter((m) => m.id !== member.id));
+    } catch (err) {
+      setActionError(err.message);
+    }
+  }
+
+  async function handleLeave() {
+    if (!window.confirm(`Sair do workspace "${workspace.name}"? Você perderá o acesso ao conteúdo dele.`)) return;
+
+    setActionError("");
+    try {
+      await leaveWorkspace(workspace.id);
+      onLeft();
+    } catch (err) {
+      setActionError(err.message);
+    }
+  }
+
   if (loading) {
     return (
       <div className="content">
@@ -74,6 +131,9 @@ export default function MembersPage({ user, workspace }) {
         <h1>
           Membros<span className="count">{members.length}</span>
         </h1>
+        <button className="btn-new" onClick={handleLeave}>
+          Sair do workspace
+        </button>
       </div>
 
       {isAdmin && (
@@ -104,6 +164,8 @@ export default function MembersPage({ user, workspace }) {
         </form>
       )}
 
+      {actionError && <div className="login-error">{actionError}</div>}
+
       {members.length === 0 ? (
         <div className="tut-list">
           <div className="empty-state">Nenhum membro neste workspace.</div>
@@ -115,18 +177,48 @@ export default function MembersPage({ user, workspace }) {
               <th>Nome</th>
               <th>E-mail</th>
               <th>Papel</th>
+              {isAdmin && <th className="col-actions" aria-label="Ações"></th>}
             </tr>
           </thead>
           <tbody>
-            {members.map((m) => (
-              <tr key={m.id}>
-                <td>{m.name}</td>
-                <td>{m.email}</td>
-                <td>
-                  <span className="tut-tag">{ROLE_LABELS[m.role] || m.role}</span>
-                </td>
-              </tr>
-            ))}
+            {members.map((m) => {
+              const isSelf = m.user_id === user.id;
+              return (
+                <tr key={m.id}>
+                  <td>
+                    {m.name}
+                    {isSelf && " (você)"}
+                  </td>
+                  <td>{m.email}</td>
+                  <td>
+                    {isAdmin ? (
+                      <select
+                        value={m.role}
+                        disabled={busyId === m.id}
+                        onChange={(e) => handleRoleChange(m, e.target.value)}
+                        aria-label={`Papel de ${m.name}`}
+                      >
+                        <option value="member">Membro</option>
+                        <option value="admin">Admin</option>
+                      </select>
+                    ) : (
+                      <span className="tut-tag">{ROLE_LABELS[m.role] || m.role}</span>
+                    )}
+                  </td>
+                  {isAdmin && (
+                    <td className="col-actions">
+                      {/* A própria linha não tem "Remover": para isso existe
+                          o botão "Sair do workspace" no topo. */}
+                      {!isSelf && (
+                        <OptionsMenu
+                          items={[{ label: "Remover membro", danger: true, onClick: () => handleRemove(m) }]}
+                        />
+                      )}
+                    </td>
+                  )}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       )}
