@@ -7,7 +7,11 @@
 
 import { useEffect } from "react";
 
-export default function Modal({ title, onClose, children, wide = false }) {
+/**
+ * headerExtra: elemento opcional ao lado do título (ex.: botão "?" que
+ * reabre o tour do formulário de tutorial).
+ */
+export default function Modal({ title, onClose, children, wide = false, headerExtra = null }) {
   useEffect(() => {
     function handleKey(e) {
       if (e.key === "Escape") onClose();
@@ -27,7 +31,12 @@ export default function Modal({ title, onClose, children, wide = false }) {
         // campo e soltar o mouse fora do cartão não fecha a janela.
         onMouseDown={(e) => e.stopPropagation()}
       >
-        {title && <h2 className="modal-title">{title}</h2>}
+        {(title || headerExtra) && (
+          <div className="modal-title-row">
+            {title && <h2 className="modal-title">{title}</h2>}
+            {headerExtra}
+          </div>
+        )}
         {children}
       </div>
     </div>

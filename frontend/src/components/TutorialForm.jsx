@@ -168,6 +168,13 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
 
   // Mini-tour do formulário, só na primeira vez (fica salvo no backend).
   const [showFormTour, setShowFormTour] = useState(() => Boolean(onboarding) && !onboarding.hasSeen("tutorial-form"));
+  // Incrementado pelo botão "?" para reiniciar o tour do primeiro passo.
+  const [formTourRun, setFormTourRun] = useState(0);
+
+  function openFormTour() {
+    setFormTourRun((n) => n + 1);
+    setShowFormTour(true);
+  }
 
   // Passo recém-adicionado: recebe o foco para a pessoa já sair digitando.
   const [focusKey, setFocusKey] = useState(null);
@@ -356,7 +363,26 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
   }
 
   return (
-    <Modal title={isEdit ? "Editar tutorial" : "Novo tutorial"} onClose={handleClose} wide>
+    <Modal
+      title={isEdit ? "Editar tutorial" : "Novo tutorial"}
+      onClose={handleClose}
+      wide
+      // O "?" do header do site fica escondido atrás do formulário; este
+      // reabre o mini-tour do próprio formulário.
+      headerExtra={
+        onboarding && (
+          <button
+            type="button"
+            className="help-button inline"
+            onClick={openFormTour}
+            title="Ver dicas do formulário"
+            aria-label="Ver dicas do formulário"
+          >
+            ?
+          </button>
+        )
+      }
+    >
       {restoredDraft && (
         <div className="draft-banner">
           <div>
@@ -622,6 +648,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
 
       {showFormTour && (
         <Tour
+          key={formTourRun}
           steps={TOURS["tutorial-form"]}
           onClose={() => {
             setShowFormTour(false);

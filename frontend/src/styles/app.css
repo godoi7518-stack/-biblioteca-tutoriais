@@ -457,7 +457,8 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
   padding: 28px 28px 24px;
 }
 .modal-card.wide { max-width: 560px; }
-.modal-title { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: var(--title-color); }
+.modal-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.modal-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--title-color); }
 .modal-message { margin: 0 0 18px; font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-line; }
 .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
 .modal-actions > button { flex: 1; margin-top: 0; justify-content: center; font-size: 13.5px; padding: 9px 12px; }
@@ -509,4 +510,6 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
   font-size: 15px; font-weight: 700;
 }
 .help-button:hover { background: rgba(255, 255, 255, 0.18); }
-
+/* Variante do "?" para fundo claro (ex.: dentro do formulário). */
+.help-button.inline { background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; font-size: 13px; }
+.help-button.inline:hover { border-color: var(--blue-500); color: var(--blue-700); background: var(--blue-100); }
