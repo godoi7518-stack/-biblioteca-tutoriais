@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -16,22 +17,36 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserResponse, status_code=201)
 def register(data: UserCreate, db: Session = Depends(get_db)):
-    """Cadastra um novo usuário (nome, e-mail e senha). Rota pública.
+    """Cadastra um novo usuário (nome, e-mail, matrícula e senha). Rota pública.
 
     A senha é salva apenas como hash (bcrypt) em password_hash. Levanta 400
-    se o e-mail já estiver cadastrado. O usuário criado não pertence a
-    nenhum workspace: ele cria o próprio ou é convidado por um admin.
+    se o e-mail ou a matrícula já estiverem cadastrados. O usuário criado
+    não pertence a nenhum workspace: ele cria o próprio ou é convidado por
+    um admin.
     """
     if db.query(User).filter(User.email == data.email).first():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="E-mail já cadastrado")
 
+    if db.query(User).filter(User.matricula == data.matricula).first():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Matrícula já cadastrada")
+
     user = User(
         name=data.name,
         email=data.email,
+        matricula=data.matricula,
         password_hash=hash_password(data.password),
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        # Dois cadastros iguais quase ao mesmo tempo passam pelas checagens
+        # acima; o UNIQUE do banco barra o segundo e caímos aqui.
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="E-mail ou matrícula já cadastrados",
+        )
     db.refresh(user)
     return user
 

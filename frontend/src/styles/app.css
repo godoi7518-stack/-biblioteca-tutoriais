@@ -105,6 +105,14 @@ input { font-family: inherit; }
 .demo-chip .role { display: block; font-weight: 600; color: var(--text); }
 .demo-chip .cred { display: block; font-family: var(--font-mono); color: var(--text-muted); font-size: 11px; margin-top: 2px; }
 .login-note { font-size: 11px; color: var(--text-muted); margin-top: 14px; line-height: 1.5; }
+/* Botão com cara de link (ex.: "Cadastre-se"). É <button> e não <a> porque
+   não leva a outra URL, só troca o modo da tela. */
+.link-button {
+  background: transparent; border: none; padding: 0;
+  color: var(--blue-700); font-size: inherit; font-weight: 600; text-decoration: underline;
+}
+.link-button:hover { color: var(--blue-900); }
+.link-button:focus-visible { outline: 2px solid var(--blue-500); outline-offset: 2px; }
 
 /* ---------- Shell ---------- */
 .shell-header {
