@@ -150,6 +150,7 @@ export default function App() {
         />
       ) : view.page === "tutorial" ? (
         <TutorialDetailPage
+          user={user}
           workspace={view.workspace}
           tabId={view.tabId}
           tutorialId={view.tutorial.id}
