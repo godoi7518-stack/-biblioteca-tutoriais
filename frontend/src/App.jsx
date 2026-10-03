@@ -130,6 +130,8 @@ export default function App() {
           tutorialId={view.tutorial.id}
           initialTutorial={view.tutorial}
           onDeleted={() => setView({ page: "tabs", workspace: view.workspace, tabId: view.tabId })}
+          // Depois de editar, guarda o título novo para o breadcrumb.
+          onUpdated={(saved) => setView({ ...view, tutorial: { ...view.tutorial, title: saved.title } })}
         />
       ) : view.page === "members" ? (
         <MembersPage

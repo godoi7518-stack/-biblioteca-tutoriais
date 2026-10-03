@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { listTabs, createTab, deleteTab, listTutorials, createTutorial, addStep, uploadImage, deleteTutorial } from "../services/api";
+import { listTabs, createTab, updateTab, deleteTab, listTutorials, deleteTutorial } from "../services/api";
 import { PlusIcon } from "../components/Icons";
 import OptionsMenu from "../components/OptionsMenu";
+import TutorialForm from "../components/TutorialForm";
 
 export default function TabsPage({ user, workspace, activeTabId, onSelectTab, onOpenTutorial, onOpenMembers }) {
   const [tabs, setTabs] = useState([]);
@@ -11,19 +12,14 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   const [error, setError] = useState("");
   const [creatingTab, setCreatingTab] = useState(false);
 
+  // O formulário de novo tutorial é o componente TutorialForm (o mesmo da
+  // edição); aqui só controlamos se ele está aberto.
   const [showForm, setShowForm] = useState(false);
-  const [formType, setFormType] = useState("simple"); // "simple" | "structured"
-  const [formTitle, setFormTitle] = useState("");
-  const [formSummary, setFormSummary] = useState("");
-  const [formContent, setFormContent] = useState("");
-  const [formSteps, setFormSteps] = useState([{ title: "", content: "", is_critical: false }]);
-  const [formError, setFormError] = useState("");
 
   // Papel do usuário neste workspace (vem do backend junto com o workspace).
   // Esconde os botões de criar/apagar para membros comuns; a permissão de
   // verdade continua sendo checada pelo require_admin no backend.
   const isAdmin = workspace.my_role === "admin";
-  const [submitting, setSubmitting] = useState(false);
 
   const currentTabId = activeTabId || tabs[0]?.id;
 
@@ -68,6 +64,24 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
     }
   }
 
+  async function handleRenameTab(tab) {
+    const name = window.prompt("Novo nome da categoria:", tab.name);
+    if (name === null || !name.trim() || name.trim() === tab.name) return;
+
+    try {
+      // O PUT substitui todos os campos da categoria: repete descrição e
+      // posição atuais para que só o nome mude.
+      await updateTab(workspace.id, tab.id, {
+        name: name.trim(),
+        description: tab.description,
+        position: tab.position,
+      });
+      loadTabs();
+    } catch (err) {
+      alert(err.message);
+    }
+  }
+
   async function handleDeleteTab(tabId) {
     if (!window.confirm("Apagar esta categoria e todos os tutoriais dentro dela?")) return;
     try {
@@ -86,84 +100,6 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
       loadTutorials(currentTabId);
     } catch (err) {
       alert(err.message);
-    }
-  }
-
-  function openNewTutorialForm() {
-    setFormType("simple");
-    setFormTitle("");
-    setFormSummary("");
-    setFormContent("");
-    setFormSteps([{ title: "", content: "", is_critical: false, image: null }]);
-    setFormError("");
-    setShowForm(true);
-  }
-
-  function addStepField() {
-  setFormSteps((prev) => [...prev, { title: "", content: "", is_critical: false, image: null }]);
-}
-
-  function removeStepField(index) {
-    setFormSteps((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function updateStepField(index, field, value) {
-    setFormSteps((prev) =>
-      prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
-    );
-  }
-
-  async function handleCreateTutorial(e) {
-    e.preventDefault();
-    setFormError("");
-
-    if (formType === "structured") {
-      const incomplete = formSteps.some((s) => !s.title.trim() || !s.content.trim());
-      if (incomplete || formSteps.length === 0) {
-        setFormError("Preencha título e conteúdo de todos os passos (ou remova os vazios).");
-        return;
-      }
-    }
-
-    setSubmitting(true);
-    let createdTutorial = null;
-    try {
-      createdTutorial = await createTutorial(workspace.id, currentTabId, {
-        title: formTitle,
-        summary: formSummary || null,
-        content_type: formType,
-        content: formType === "simple" ? formContent : null,
-      });
-
-      if (formType === "structured") {
-                for (let i = 0; i < formSteps.length; i++) {
-          const s = formSteps[i];
-          const createdStep = await addStep(workspace.id, currentTabId, createdTutorial.id, {
-            step_number: i + 1,
-            title: s.title,
-            content: s.content,
-            is_critical: s.is_critical,
-          });
-          if (s.image) {
-            await uploadImage(workspace.id, currentTabId, createdTutorial.id, s.image, null, createdStep.id);
-          }
-        }
-      }
-
-      setShowForm(false);
-      loadTutorials(currentTabId);
-    } catch (err) {
-      if (createdTutorial) {
-        try {
-          await deleteTutorial(workspace.id, currentTabId, createdTutorial.id);
-        } catch (cleanupErr) {
-          // Se nem a limpeza funcionar, o usuário verá o tutorial incompleto
-          // na lista e poderá apagar manualmente.
-        }
-      }
-      setFormError(err.message);
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -210,7 +146,10 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
             </button>
             {isAdmin && (
               <OptionsMenu
-                items={[{ label: "Excluir categoria", danger: true, onClick: () => handleDeleteTab(t.id) }]}
+                items={[
+                  { label: "Renomear categoria", onClick: () => handleRenameTab(t) },
+                  { label: "Excluir categoria", danger: true, onClick: () => handleDeleteTab(t.id) },
+                ]}
               />
             )}
           </div>
@@ -222,7 +161,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
           Tutoriais<span className="count">{tutorials.length}</span>
         </h1>
         {isAdmin && currentTabId && (
-          <button className="btn-new" onClick={openNewTutorialForm}>
+          <button className="btn-new" onClick={() => setShowForm(true)}>
             <PlusIcon /> Novo tutorial
           </button>
         )}
@@ -264,170 +203,16 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
       </div>
 
       {showForm && (
-        <div
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,0.5)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 50,
-            padding: 24,
+        <TutorialForm
+          workspaceId={workspace.id}
+          tabId={currentTabId}
+          tutorial={null}
+          onCancel={() => setShowForm(false)}
+          onSaved={() => {
+            setShowForm(false);
+            loadTutorials(currentTabId);
           }}
-          onClick={() => setShowForm(false)}
-        >
-          <div
-            className="login-card"
-            style={{ maxWidth: 560, width: "100%", maxHeight: "85vh", overflowY: "auto" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h2 style={{ marginTop: 0, marginBottom: 18, fontSize: 16 }}>Novo tutorial</h2>
-
-            {formError && <div className="login-error">{formError}</div>}
-
-            <form onSubmit={handleCreateTutorial}>
-              <div className="field">
-                <label htmlFor="tut-title">Título</label>
-                <input
-                  id="tut-title"
-                  value={formTitle}
-                  onChange={(e) => setFormTitle(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="tut-summary">Resumo (opcional)</label>
-                <input
-                  id="tut-summary"
-                  value={formSummary}
-                  onChange={(e) => setFormSummary(e.target.value)}
-                />
-              </div>
-
-              <div className="field">
-                <label>Tipo de tutorial</label>
-                <div className="type-toggle">
-                  <button
-                    type="button"
-                    className={"type-toggle-btn" + (formType === "simple" ? " active" : "")}
-                    onClick={() => setFormType("simple")}
-                  >
-                    Texto corrido
-                  </button>
-                  <button
-                    type="button"
-                    className={"type-toggle-btn" + (formType === "structured" ? " active" : "")}
-                    onClick={() => setFormType("structured")}
-                  >
-                    Passo a passo
-                  </button>
-                </div>
-              </div>
-
-              {formType === "simple" ? (
-                <div className="field">
-                  <label htmlFor="tut-content">Conteúdo</label>
-                  <textarea
-                    id="tut-content"
-                    rows={6}
-                    value={formContent}
-                    onChange={(e) => setFormContent(e.target.value)}
-                    required
-                    style={{
-                      width: "100%",
-                      padding: "9px 10px",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      background: "var(--bg)",
-                      color: "var(--text)",
-                      fontSize: 14,
-                      fontFamily: "inherit",
-                      resize: "vertical",
-                    }}
-                  />
-                </div>
-              ) : (
-                <div className="field">
-                  <label>Passos</label>
-                  {formSteps.map((step, i) => (
-                    <div className="step-builder" key={i}>
-                      <div className="step-builder-header">
-                        <span className="step-builder-num">Passo {i + 1}</span>
-                        {formSteps.length > 1 && (
-                          <button
-                            type="button"
-                            className="step-builder-remove"
-                            onClick={() => removeStepField(i)}
-                          >
-                            Remover
-                          </button>
-                        )}
-                      </div>
-                      <input
-                        placeholder="Título do passo"
-                        value={step.title}
-                        onChange={(e) => updateStepField(i, "title", e.target.value)}
-                        style={{ marginBottom: 8 }}
-                      />
-                      <textarea
-                        placeholder="O que deve ser feito neste passo"
-                        rows={3}
-                        value={step.content}
-                        onChange={(e) => updateStepField(i, "content", e.target.value)}
-                        style={{
-                          width: "100%",
-                          padding: "9px 10px",
-                          border: "1px solid var(--border)",
-                          borderRadius: "var(--radius)",
-                          background: "var(--bg)",
-                          color: "var(--text)",
-                          fontSize: 13,
-                          fontFamily: "inherit",
-                          resize: "vertical",
-                        }}
-                      />
-                      <label className="step-critical-toggle">
-                        <input
-                          type="checkbox"
-                          checked={step.is_critical}
-                          onChange={(e) => updateStepField(i, "is_critical", e.target.checked)}
-                        />
-                        Marcar como etapa crítica
-                      </label>
-                      <label className="step-image-upload">
-                        <span>Imagem do passo (opcional)</span>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/webp"
-                          onChange={(e) => updateStepField(i, "image", e.target.files[0] || null)}
-                        />
-                        {step.image && <span className="step-image-filename">{step.image.name}</span>}
-                      </label>
-                    </div>
-                  ))}
-                  <button type="button" className="btn-new" onClick={addStepField} style={{ marginTop: 4 }}>
-                    <PlusIcon /> Adicionar passo
-                  </button>
-                </div>
-              )}
-
-              <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-                <button
-                  type="button"
-                  className="btn-new"
-                  style={{ flex: 1 }}
-                  onClick={() => setShowForm(false)}
-                >
-                  Cancelar
-                </button>
-                <button className="btn-primary" style={{ flex: 1, marginTop: 0 }} disabled={submitting}>
-                  {submitting ? "Salvando…" : "Criar tutorial"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        />
       )}
     </div>
   );

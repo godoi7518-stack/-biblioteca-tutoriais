@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Literal
 
@@ -12,8 +12,51 @@ class TutorialBase(BaseModel):
     content: str | None = None   # usado só quando content_type = "simple"
 
 
-class TutorialCreate(TutorialBase):
-    pass
+def _strip(valor):
+    """Tira espaços das pontas antes de validar tamanho, para "   " não
+    contar como campo preenchido."""
+    return valor.strip() if isinstance(valor, str) else valor
+
+
+class TutorialStepInput(BaseModel):
+    """Um passo dentro do corpo de criar/editar tutorial.
+
+    id = None → passo novo; id preenchido → passo que já existe (edição).
+    Não tem step_number: a posição na lista enviada É a ordem do passo,
+    o backend numera sozinho.
+    """
+
+    id: int | None = None
+    title: str = Field(min_length=1, max_length=150)
+    content: str = Field(min_length=1)
+    is_critical: bool = False
+
+    _strip_texts = field_validator("title", "content", mode="before")(_strip)
+
+
+class TutorialCreate(BaseModel):
+    """Corpo do POST: o tutorial e, se for "structured", todos os passos de
+    uma vez (salvos na mesma transação)."""
+
+    title: str = Field(min_length=1, max_length=200)
+    summary: str | None = Field(None, max_length=300)
+    content_type: Literal["simple", "structured"] = "simple"
+    content: str | None = None   # usado só quando content_type = "simple"
+    steps: list[TutorialStepInput] | None = None   # usado só quando "structured"
+
+    _strip_texts = field_validator("title", "summary", mode="before")(_strip)
+
+
+class TutorialUpdate(BaseModel):
+    """Corpo do PUT. Não tem content_type de propósito: o tipo é fixo
+    depois de criado (converter arriscaria perder conteúdo)."""
+
+    title: str = Field(min_length=1, max_length=200)
+    summary: str | None = Field(None, max_length=300)
+    content: str | None = None
+    steps: list[TutorialStepInput] | None = None
+
+    _strip_texts = field_validator("title", "summary", mode="before")(_strip)
 
 
 class TutorialResponse(TutorialBase):
@@ -44,6 +87,14 @@ class TutorialStepResponse(TutorialStepBase):
 
     class Config:
         from_attributes = True
+
+
+class TutorialDetailResponse(TutorialResponse):
+    """Resposta de criar/editar: o tutorial com os passos já salvos, na
+    ordem. O frontend precisa dos ids dos passos para enviar as imagens de
+    cada um logo em seguida."""
+
+    steps: list[TutorialStepResponse] = []
 
 class TutorialSearchResult(BaseModel):
     id: int
