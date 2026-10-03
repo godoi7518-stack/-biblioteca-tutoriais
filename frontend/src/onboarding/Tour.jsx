@@ -103,16 +103,20 @@ export default function Tour({ steps, onClose }) {
     setIndex((i) => Math.max(0, i - 1));
   }
 
-  // Teclado: Esc pula o tour, setas navegam.
+  // Teclado: Esc pula o tour, setas navegam. Escuta na fase de "captura"
+  // e interrompe o evento: assim, com o tour aberto por cima de uma janela
+  // (ex.: formulário de tutorial), o Esc fecha só o tour, não a janela.
   useEffect(() => {
     if (!step) return;
     function handleKey(e) {
       if (e.key === "Escape") onClose();
       else if (e.key === "ArrowRight") next();
       else if (e.key === "ArrowLeft") back();
+      else return;
+      e.stopPropagation();
     }
-    document.addEventListener("keydown", handleKey);
-    return () => document.removeEventListener("keydown", handleKey);
+    document.addEventListener("keydown", handleKey, true);
+    return () => document.removeEventListener("keydown", handleKey, true);
   });
 
   if (!step) return null;

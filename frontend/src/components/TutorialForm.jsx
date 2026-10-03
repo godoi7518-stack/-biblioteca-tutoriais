@@ -20,6 +20,24 @@ import { PlusIcon } from "./Icons";
 import Modal from "./Modal";
 import { useDialog } from "./DialogProvider";
 import { draftKey, loadDraft, saveDraft, clearDraft } from "../utils/drafts";
+import Tour from "../onboarding/Tour";
+import { TOURS } from "../onboarding/tours";
+import { useOnboarding } from "../onboarding/OnboardingContext";
+
+// Opções de formato, com a explicação do que cada uma gera para quem lê.
+// "Passo a passo" vem primeiro e é o padrão: é o diferencial do produto.
+const TYPE_OPTIONS = [
+  {
+    value: "structured",
+    label: "Passo a passo",
+    desc: "Cada etapa vira um bloco que o leitor abre e segue na ordem, com etapas críticas em destaque e imagem por passo. Ideal para procedimentos.",
+  },
+  {
+    value: "simple",
+    label: "Texto corrido",
+    desc: "Um texto único, como um aviso, uma regra ou uma explicação curta.",
+  },
+];
 
 const textareaStyle = {
   width: "100%",
@@ -35,6 +53,7 @@ const textareaStyle = {
 export default function TutorialForm({ userId, workspaceId, tabId, tutorial, steps, images, onSaved, onCancel }) {
   const isEdit = Boolean(tutorial);
   const dialog = useDialog();
+  const onboarding = useOnboarding();
   const key = draftKey({ userId, workspaceId, tabId, tutorialId: tutorial?.id });
 
   // Cada passo do formulário ganha uma "key" própria e estável. Usar o
@@ -61,7 +80,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
   /** Valores do tutorial como está salvo (ou vazio, se for novo). */
   function originalValues() {
     return {
-      type: tutorial?.content_type || "simple",
+      type: tutorial?.content_type || "structured",
       title: tutorial?.title || "",
       summary: tutorial?.summary || "",
       content: tutorial?.content || "",
@@ -147,6 +166,22 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
   // Depois de salvar com sucesso, o rascunho não deve ser gravado de novo.
   const finished = useRef(false);
 
+  // Mini-tour do formulário, só na primeira vez (fica salvo no backend).
+  const [showFormTour, setShowFormTour] = useState(() => Boolean(onboarding) && !onboarding.hasSeen("tutorial-form"));
+
+  // Passo recém-adicionado: recebe o foco para a pessoa já sair digitando.
+  const [focusKey, setFocusKey] = useState(null);
+  useEffect(() => {
+    if (focusKey !== null) document.getElementById(`step-title-${focusKey}`)?.focus();
+  }, [focusKey]);
+
+  // Arrastar para reordenar. O bloco só fica "arrastável" enquanto o mouse
+  // está pressionado na alça ⠿ — senão selecionar texto num campo
+  // arrastaria o passo inteiro.
+  const [armedKey, setArmedKey] = useState(null);
+  const [dragIndex, setDragIndex] = useState(null);
+  const [overIndex, setOverIndex] = useState(null);
+
   const currentSnapshot = snapshot({ type, title, summary, content, steps: formSteps });
   const isDirty = currentSnapshot !== initial.originalSnapshot;
 
@@ -199,6 +234,28 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
 
   function updateStep(index, field, value) {
     setFormSteps((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
+  }
+
+  function addStep() {
+    const step = emptyStep();
+    setFormSteps((prev) => [...prev, step]);
+    setFocusKey(step.key);
+  }
+
+  /** Move o passo da posição "from" para a posição "to" (arrastar). */
+  function moveStepTo(from, to) {
+    setFormSteps((prev) => {
+      const copy = [...prev];
+      const [item] = copy.splice(from, 1);
+      copy.splice(to, 0, item);
+      return copy;
+    });
+  }
+
+  function endDrag() {
+    setDragIndex(null);
+    setOverIndex(null);
+    setArmedKey(null);
   }
 
   function moveStep(index, delta) {
@@ -327,38 +384,49 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
 
       <form onSubmit={handleSubmit}>
         <div className="field">
-          <label htmlFor="tut-title">Título</label>
-          <input id="tut-title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+          <label htmlFor="tut-title">Título do tutorial</label>
+          <input
+            id="tut-title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            maxLength={200}
+            placeholder="Ex.: Como reimprimir uma etiqueta"
+            required
+          />
         </div>
         <div className="field">
           <label htmlFor="tut-summary">Resumo (opcional)</label>
-          <input id="tut-summary" value={summary} onChange={(e) => setSummary(e.target.value)} maxLength={300} />
+          <input
+            id="tut-summary"
+            value={summary}
+            onChange={(e) => setSummary(e.target.value)}
+            maxLength={300}
+            placeholder="Ex.: Quando a etiqueta sai borrada ou não é impressa"
+          />
         </div>
 
         <div className="field">
-          <label>Tipo de tutorial</label>
+          <label>Formato</label>
           {isEdit ? (
             // Tipo é fixo depois de criado: converter arriscaria perder
             // o texto ou os passos/imagens existentes.
-            <p className="login-note" style={{ marginTop: 0 }}>
-              {type === "structured" ? "Passo a passo" : "Texto corrido"} — o tipo não pode ser alterado depois de criado.
+            <p className="login-note" style={{ marginTop: 0 }} data-tour="form-type">
+              {type === "structured" ? "Passo a passo" : "Texto corrido"} — o formato não pode ser alterado depois de criado.
             </p>
           ) : (
-            <div className="type-toggle">
-              <button
-                type="button"
-                className={"type-toggle-btn" + (type === "simple" ? " active" : "")}
-                onClick={() => setType("simple")}
-              >
-                Texto corrido
-              </button>
-              <button
-                type="button"
-                className={"type-toggle-btn" + (type === "structured" ? " active" : "")}
-                onClick={() => setType("structured")}
-              >
-                Passo a passo
-              </button>
+            <div className="type-options" data-tour="form-type">
+              {TYPE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  className={"type-option" + (type === opt.value ? " active" : "")}
+                  onClick={() => setType(opt.value)}
+                  aria-pressed={type === opt.value}
+                >
+                  <span className="type-option-title">{opt.label}</span>
+                  <span className="type-option-desc">{opt.desc}</span>
+                </button>
+              ))}
             </div>
           )}
         </div>
@@ -371,6 +439,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
               rows={6}
               value={content}
               onChange={(e) => setContent(e.target.value)}
+              placeholder="Escreva o texto do tutorial. Use **asteriscos** para negrito."
               required
               style={{ ...textareaStyle, fontSize: 14 }}
             />
@@ -379,10 +448,53 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
           <div className="field">
             <label>Passos</label>
             {formSteps.map((step, i) => (
-              <div className="step-builder" key={step.key}>
+              <div
+                key={step.key}
+                className={
+                  "step-builder" +
+                  (step.is_critical ? " critical" : "") +
+                  (dragIndex === i ? " dragging" : "") +
+                  (overIndex === i && dragIndex !== null && dragIndex !== i
+                    ? dragIndex > i
+                      ? " drop-before"
+                      : " drop-after"
+                    : "")
+                }
+                data-tour={i === 0 ? "form-step" : undefined}
+                draggable={armedKey === step.key}
+                onDragStart={(e) => {
+                  e.dataTransfer.effectAllowed = "move";
+                  e.dataTransfer.setData("text/plain", String(i)); // exigido pelo Firefox
+                  setDragIndex(i);
+                }}
+                onDragOver={(e) => {
+                  if (dragIndex === null) return;
+                  e.preventDefault(); // permite soltar aqui
+                  if (overIndex !== i) setOverIndex(i);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  if (dragIndex !== null && dragIndex !== i) moveStepTo(dragIndex, i);
+                  endDrag();
+                }}
+                onDragEnd={endDrag}
+              >
                 <div className="step-builder-header">
-                  <span className="step-builder-num">Passo {i + 1}</span>
+                  <span className="step-builder-num">
+                    <span
+                      className="step-drag-handle"
+                      title="Arraste para mudar a ordem"
+                      aria-hidden="true"
+                      onMouseDown={() => setArmedKey(step.key)}
+                      onMouseUp={() => setArmedKey(null)}
+                    >
+                      ⠿
+                    </span>
+                    Passo {i + 1}
+                  </span>
                   <div className="step-builder-actions">
+                    {/* As setas continuam existindo: arrastar não funciona no
+                        celular (toque) nem por teclado. */}
                     <button
                       type="button"
                       className="step-builder-move"
@@ -412,27 +524,47 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
                     )}
                   </div>
                 </div>
+
+                <label className="step-field-label" htmlFor={`step-title-${step.key}`}>
+                  Título do passo
+                </label>
                 <input
-                  placeholder="Título do passo"
+                  id={`step-title-${step.key}`}
+                  placeholder={i === 0 ? "Ex.: Abra o sistema de etiquetas" : "O que fazer neste passo"}
                   value={step.title}
                   onChange={(e) => updateStep(i, "title", e.target.value)}
                   maxLength={150}
                   style={{ marginBottom: 8 }}
                 />
+                <label className="step-field-label" htmlFor={`step-content-${step.key}`}>
+                  Como fazer
+                </label>
                 <textarea
-                  placeholder="O que deve ser feito neste passo"
+                  id={`step-content-${step.key}`}
+                  placeholder={
+                    i === 0 ? "Ex.: Clique em Reimprimir, escolha a impressora da linha e confirme." : "Explique como fazer"
+                  }
                   rows={3}
                   value={step.content}
                   onChange={(e) => updateStep(i, "content", e.target.value)}
                   style={{ ...textareaStyle, fontSize: 13 }}
                 />
-                <label className="step-critical-toggle">
+                <label
+                  className={"critical-toggle" + (step.is_critical ? " on" : "")}
+                  data-tour={i === 0 ? "form-critical" : undefined}
+                >
                   <input
                     type="checkbox"
                     checked={step.is_critical}
                     onChange={(e) => updateStep(i, "is_critical", e.target.checked)}
                   />
-                  Marcar como etapa crítica
+                  <span className="critical-toggle-icon" aria-hidden="true">
+                    ⚠
+                  </span>
+                  <span>
+                    <strong>Etapa crítica</strong>
+                    <span className="critical-toggle-hint"> aparece em vermelho para quem lê</span>
+                  </span>
                 </label>
 
                 {step.existingImages.length > 0 && (
@@ -456,7 +588,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
                   </div>
                 )}
 
-                <label className="step-image-upload">
+                <label className="step-image-upload" data-tour={i === 0 ? "form-image" : undefined}>
                   <span>{step.existingImages.length > 0 ? "Adicionar outra imagem (opcional)" : "Imagem do passo (opcional)"}</span>
                   <input
                     type="file"
@@ -467,12 +599,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
                 </label>
               </div>
             ))}
-            <button
-              type="button"
-              className="btn-new"
-              onClick={() => setFormSteps((prev) => [...prev, emptyStep()])}
-              style={{ marginTop: 4 }}
-            >
+            <button type="button" className="btn-new" onClick={addStep} style={{ marginTop: 4 }} data-tour="form-add-step">
               <PlusIcon /> Adicionar passo
             </button>
           </div>
@@ -492,6 +619,16 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
           </p>
         )}
       </form>
+
+      {showFormTour && (
+        <Tour
+          steps={TOURS["tutorial-form"]}
+          onClose={() => {
+            setShowFormTour(false);
+            onboarding.markSeen("tutorial-form");
+          }}
+        />
+      )}
     </Modal>
   );
 }

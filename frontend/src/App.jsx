@@ -17,6 +17,7 @@ import SearchResultsPage from "./pages/SearchResults";
 import MembersPage from "./pages/Members";
 import Tour from "./onboarding/Tour";
 import { TOURS, tourKeyFor } from "./onboarding/tours";
+import { OnboardingContext } from "./onboarding/OnboardingContext";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -60,15 +61,27 @@ export default function App() {
     setActiveTour(currentTourKey);
   }, [user, currentTourKey]);
 
+  /** Marca um tour como visto: atualiza na hora (para não reabrir) e avisa
+      o backend; se a chamada falhar, o pior caso é o tour aparecer de novo
+      no próximo acesso. */
+  function markTourSeen(key) {
+    if (!key || (user?.onboarding_seen || []).includes(key)) return;
+    setUser((u) => ({ ...u, onboarding_seen: [...(u.onboarding_seen || []), key] }));
+    markOnboardingSeen(key).catch(() => {});
+  }
+
+  // Disponível para qualquer componente via useOnboarding() (ex.: o
+  // mini-tour do formulário de tutorial).
+  const onboardingApi = {
+    hasSeen: (key) => (user?.onboarding_seen || []).includes(key),
+    markSeen: markTourSeen,
+  };
+
   /** Fechou o tour (concluiu, pulou ou Esc): marca como visto. */
   function closeTour() {
     const key = activeTour;
     setActiveTour(null);
-    if (!key || (user.onboarding_seen || []).includes(key)) return;
-    // Atualiza na hora (para não reabrir) e avisa o backend; se a chamada
-    // falhar, o pior caso é o tour aparecer de novo no próximo acesso.
-    setUser((u) => ({ ...u, onboarding_seen: [...(u.onboarding_seen || []), key] }));
-    markOnboardingSeen(key).catch(() => {});
+    markTourSeen(key);
   }
 
   function openHelp() {
@@ -124,7 +137,7 @@ export default function App() {
   if (view.page === "members") crumbs.push({ label: "Membros", icon: UsersIcon });
 
   return (
-    <div>
+    <OnboardingContext.Provider value={onboardingApi}>
       <Header
         user={user}
         // Papel no workspace aberto (selo ADMIN/MEMBRO); fora de um
@@ -209,6 +222,6 @@ export default function App() {
       {activeTour && TOURS[activeTour] && (
         <Tour key={`${activeTour}-${tourRun}`} steps={TOURS[activeTour]} onClose={closeTour} />
       )}
-    </div>
+    </OnboardingContext.Provider>
   );
 }
