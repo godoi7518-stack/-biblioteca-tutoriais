@@ -160,7 +160,17 @@ export const TOURS = {
     {
       target: "form-add-step",
       title: "Mais passos",
-      text: "Adicione quantos passos precisar. Para mudar a ordem, arraste o passo pela alça ⠿ ou use as setas.",
+      text: "Adicione quantos passos precisar. Depois dá para mudar a ordem, como mostram os próximos balões.",
+    },
+    {
+      target: "form-drag",
+      title: "Mudar a ordem arrastando",
+      text: "Segure a alça ⠿ ao lado do número do passo e arraste para cima ou para baixo. Uma linha azul mostra onde o passo vai entrar.",
+    },
+    {
+      target: "form-move",
+      title: "Ou use as setas",
+      text: "As setas ↑ ↓ sobem ou descem o passo uma posição. Funcionam também no celular, onde arrastar não está disponível.",
     },
   ],
 

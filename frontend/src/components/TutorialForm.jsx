@@ -509,6 +509,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
                   <span className="step-builder-num">
                     <span
                       className="step-drag-handle"
+                      data-tour={i === 0 ? "form-drag" : undefined}
                       title="Arraste para mudar a ordem"
                       aria-hidden="true"
                       onMouseDown={() => setArmedKey(step.key)}
@@ -521,24 +522,26 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
                   <div className="step-builder-actions">
                     {/* As setas continuam existindo: arrastar não funciona no
                         celular (toque) nem por teclado. */}
-                    <button
-                      type="button"
-                      className="step-builder-move"
-                      onClick={() => moveStep(i, -1)}
-                      disabled={i === 0}
-                      aria-label={`Mover passo ${i + 1} para cima`}
-                    >
-                      ↑
-                    </button>
-                    <button
-                      type="button"
-                      className="step-builder-move"
-                      onClick={() => moveStep(i, 1)}
-                      disabled={i === formSteps.length - 1}
-                      aria-label={`Mover passo ${i + 1} para baixo`}
-                    >
-                      ↓
-                    </button>
+                    <span className="step-move-buttons" data-tour={i === 0 ? "form-move" : undefined}>
+                      <button
+                        type="button"
+                        className="step-builder-move"
+                        onClick={() => moveStep(i, -1)}
+                        disabled={i === 0}
+                        aria-label={`Mover passo ${i + 1} para cima`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="step-builder-move"
+                        onClick={() => moveStep(i, 1)}
+                        disabled={i === formSteps.length - 1}
+                        aria-label={`Mover passo ${i + 1} para baixo`}
+                      >
+                        ↓
+                      </button>
+                    </span>
                     {formSteps.length > 1 && (
                       <button
                         type="button"
