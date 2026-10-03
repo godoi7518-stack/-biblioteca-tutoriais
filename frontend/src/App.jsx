@@ -8,13 +8,13 @@ import { useState, useEffect } from "react";
 import { getCurrentUser } from "./services/api";
 import Header from "./components/Header";
 import Breadcrumb from "./components/Breadcrumb";
+import { GridIcon, BriefcaseIcon, FolderIcon, DocumentIcon, UsersIcon } from "./components/Icons";
 import Login from "./pages/Login";
 import WorkspacesPage from "./pages/Workspaces";
 import TabsPage from "./pages/Tabs";
 import TutorialDetailPage from "./pages/TutorialDetail";
 import SearchResultsPage from "./pages/SearchResults";
 import MembersPage from "./pages/Members";
-import "./styles/app.css";
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -53,7 +53,7 @@ export default function App() {
     localStorage.removeItem("bt_token");
   }
 
-   if (checkingAuth) {
+  if (checkingAuth) {
     return null;
   }
 
@@ -63,32 +63,54 @@ export default function App() {
 
   const isSearching = searchQuery.trim().length > 0;
 
-  const crumbs = [{ label: "Workspaces", page: "workspaces" }];
-  if (view.workspace) crumbs.push({ label: view.workspace.name, page: "tabs", workspace: view.workspace });
-  if (view.tutorial) crumbs.push({ label: view.tutorial.title, page: "tutorial" });
-  if (view.page === "members") crumbs.push({ label: "Membros", page: "members" });
-
-  function navigate(item) {
+  function goHome() {
     setSearchQuery("");
-    if (item.page === "workspaces") setView({ page: "workspaces" });
-    else if (item.page === "tabs") setView({ page: "tabs", workspace: item.workspace, tabId: view.tabId });
+    setView({ page: "workspaces" });
   }
+
+  // Trilha do breadcrumb: Workspaces › Workspace › Categoria › Tutorial (ou
+  // › Membros). O último item é a tela atual.
+  const crumbs = [{ label: "Workspaces", icon: GridIcon, onClick: goHome }];
+  if (view.workspace) {
+    crumbs.push({
+      label: view.workspace.name,
+      icon: BriefcaseIcon,
+      onClick: () => setView({ page: "tabs", workspace: view.workspace, tabId: view.tabId }),
+    });
+  }
+  if (view.page === "tutorial") {
+    if (view.tabName) {
+      crumbs.push({
+        label: view.tabName,
+        icon: FolderIcon,
+        onClick: () => setView({ page: "tabs", workspace: view.workspace, tabId: view.tabId }),
+      });
+    }
+    crumbs.push({ label: view.tutorial.title, icon: DocumentIcon });
+  }
+  if (view.page === "members") crumbs.push({ label: "Membros", icon: UsersIcon });
 
   return (
     <div>
-      <Header user={user} onLogout={handleLogout} searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+      <Header
+        user={user}
+        // Papel no workspace aberto (selo ADMIN/MEMBRO); fora de um
+        // workspace não há papel a mostrar.
+        role={!isSearching ? view.workspace?.my_role : null}
+        onLogout={handleLogout}
+        onGoHome={goHome}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+      />
 
-      {!isSearching && <Breadcrumb items={crumbs} onNavigate={navigate} />}
+      {!isSearching && <Breadcrumb items={crumbs} />}
 
       {isSearching ? (
         <SearchResultsPage
           query={searchQuery}
           // "Início" é a tela de Workspaces: limpa a busca (o que esconde
           // os resultados) e reseta a navegação.
-          onGoHome={() => {
-            setSearchQuery("");
-            setView({ page: "workspaces" });
-          }}
+          onGoHome={goHome}
           // Workspace achado pela busca já vem no mesmo formato da lista de
           // workspaces (inclusive my_role), então abre direto.
           onOpenWorkspace={(ws) => {
@@ -107,6 +129,7 @@ export default function App() {
               tutorial: t,
               workspace: { id: t.workspace_id, name: t.workspace_name, my_role: t.workspace_role },
               tabId: t.tab_id,
+              tabName: t.tab_name,
             });
           }}
         />
@@ -118,12 +141,14 @@ export default function App() {
           workspace={view.workspace}
           activeTabId={view.tabId}
           onSelectTab={(tabId) => setView({ ...view, tabId })}
-          onOpenTutorial={(t) => setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId })}
+          onOpenTutorial={(t) =>
+            setView({ page: "tutorial", tutorial: t, workspace: view.workspace, tabId: t.tabId, tabName: t.tabName })
+          }
           // Guarda o tabId para que, ao voltar pelo breadcrumb, a mesma
           // categoria continue selecionada.
           onOpenMembers={() => setView({ page: "members", workspace: view.workspace, tabId: view.tabId })}
         />
-          ) : view.page === "tutorial" ? (
+      ) : view.page === "tutorial" ? (
         <TutorialDetailPage
           workspace={view.workspace}
           tabId={view.tabId}

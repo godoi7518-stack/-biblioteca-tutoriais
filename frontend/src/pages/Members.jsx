@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { listMembers, inviteMember, updateMemberRole, removeMember, leaveWorkspace } from "../services/api";
 import OptionsMenu from "../components/OptionsMenu";
+import { useDialog } from "../components/DialogProvider";
 
 const ROLE_LABELS = { admin: "ADMIN", member: "MEMBRO" };
 
@@ -29,6 +30,7 @@ export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }
   const [busyId, setBusyId] = useState(null);
 
   const isAdmin = workspace.my_role === "admin";
+  const dialog = useDialog();
 
   useEffect(() => {
     loadMembers();
@@ -64,9 +66,11 @@ export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }
   async function handleRoleChange(member, role) {
     const isSelf = member.user_id === user.id;
     if (isSelf && role === "member") {
-      const ok = window.confirm(
-        "Você deixará de ser admin deste workspace e não poderá mais criar, editar ou apagar conteúdo. Continuar?"
-      );
+      const ok = await dialog.confirm({
+        title: "Deixar de ser admin",
+        message: "Você deixará de ser admin deste workspace e não poderá mais criar, editar ou apagar conteúdo.",
+        confirmLabel: "Deixar de ser admin",
+      });
       if (!ok) return;
     }
 
@@ -86,7 +90,13 @@ export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }
   }
 
   async function handleRemove(member) {
-    if (!window.confirm(`Remover ${member.name} deste workspace? A conta dele continua existindo.`)) return;
+    const ok = await dialog.confirm({
+      title: "Remover membro",
+      message: `Remover ${member.name} deste workspace? A conta dele continua existindo.`,
+      confirmLabel: "Remover",
+      danger: true,
+    });
+    if (!ok) return;
 
     setActionError("");
     try {
@@ -98,7 +108,13 @@ export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }
   }
 
   async function handleLeave() {
-    if (!window.confirm(`Sair do workspace "${workspace.name}"? Você perderá o acesso ao conteúdo dele.`)) return;
+    const ok = await dialog.confirm({
+      title: "Sair do workspace",
+      message: `Sair de "${workspace.name}"? Você perderá o acesso ao conteúdo dele.`,
+      confirmLabel: "Sair",
+      danger: true,
+    });
+    if (!ok) return;
 
     setActionError("");
     try {

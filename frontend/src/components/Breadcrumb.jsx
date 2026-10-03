@@ -1,19 +1,39 @@
-export default function Breadcrumb({ items, onNavigate }) {
+/**
+ * Trilha de navegação ("você está aqui"). Cada nível é um botão com ícone
+ * que leva de volta àquela tela; o último é a tela atual: fica destacado e
+ * não é clicável.
+ *
+ * items: [{ label, icon, onClick }] — o App.jsx monta a lista conforme a
+ * tela aberta.
+ */
+
+export default function Breadcrumb({ items }) {
   return (
-    <div className="breadcrumb">
+    <nav className="breadcrumb" aria-label="Você está em">
       {items.map((item, i) => {
-        const isLast = i === items.length - 1;
+        const isCurrent = i === items.length - 1;
+        const Icon = item.icon;
         return (
-          <span key={i} style={{ display: "contents" }}>
-            {i > 0 && <span className="sep">/</span>}
-            {isLast ? (
-              <span className="current">{item.label}</span>
+          <span className="crumb-wrap" key={i}>
+            {i > 0 && (
+              <span className="crumb-sep" aria-hidden="true">
+                ›
+              </span>
+            )}
+            {isCurrent ? (
+              <span className="crumb current" aria-current="page" title={item.label}>
+                {Icon && <Icon />}
+                <span className="crumb-label">{item.label}</span>
+              </span>
             ) : (
-              <button onClick={() => onNavigate(item)}>{item.label}</button>
+              <button className="crumb" onClick={item.onClick} title={`Voltar para ${item.label}`}>
+                {Icon && <Icon />}
+                <span className="crumb-label">{item.label}</span>
+              </button>
             )}
           </span>
         );
       })}
-    </div>
+    </nav>
   );
 }

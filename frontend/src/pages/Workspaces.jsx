@@ -3,12 +3,14 @@ import { initials } from "../utils/helpers";
 import { PlusIcon } from "../components/Icons";
 import OptionsMenu from "../components/OptionsMenu";
 import { listWorkspaces, createWorkspace, deleteWorkspace } from "../services/api";
+import { useDialog } from "../components/DialogProvider";
 
 export default function WorkspacesPage({ user, onOpen }) {
   const [workspaces, setWorkspaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
+  const dialog = useDialog();
 
   useEffect(() => {
     loadWorkspaces();
@@ -24,7 +26,13 @@ export default function WorkspacesPage({ user, onOpen }) {
   }
 
   async function handleCreate() {
-    const name = window.prompt("Nome do novo workspace:");
+    const name = await dialog.prompt({
+      title: "Novo workspace",
+      label: "Nome do workspace",
+      placeholder: "Ex.: Equipe de Inventário",
+      maxLength: 150,
+      confirmLabel: "Criar workspace",
+    });
     if (!name) return;
 
     setCreating(true);
@@ -32,20 +40,26 @@ export default function WorkspacesPage({ user, onOpen }) {
       await createWorkspace(name);
       loadWorkspaces();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     } finally {
       setCreating(false);
     }
   }
 
   async function handleDelete(workspaceId) {
-    if (!window.confirm("Apagar este workspace? Todas as categorias, tutoriais e imagens dentro dele serão perdidos permanentemente.")) return;
+    const ok = await dialog.confirm({
+      title: "Apagar workspace",
+      message: "Todas as categorias, tutoriais e imagens dentro dele serão perdidos permanentemente.",
+      confirmLabel: "Apagar workspace",
+      danger: true,
+    });
+    if (!ok) return;
 
     try {
       await deleteWorkspace(workspaceId);
       loadWorkspaces();
     } catch (err) {
-      alert(err.message);
+      dialog.alert(err.message);
     }
   }
 
