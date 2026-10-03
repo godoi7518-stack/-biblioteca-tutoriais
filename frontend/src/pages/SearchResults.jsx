@@ -1,9 +1,13 @@
 import { useState, useEffect } from "react";
-import { searchTutorials } from "../services/api";
+import { search } from "../services/api";
+import { initials } from "../utils/helpers";
 import { ArrowLeftIcon } from "../components/Icons";
 
-export default function SearchResultsPage({ query, onOpenTutorial, onGoHome }) {
-  const [results, setResults] = useState([]);
+const EMPTY = { workspaces: [], tutorials: [] };
+const ROLE_LABELS = { admin: "Você é admin", member: "Você é membro" };
+
+export default function SearchResultsPage({ query, onOpenWorkspace, onOpenTutorial, onGoHome }) {
+  const [results, setResults] = useState(EMPTY);
   const [loading, setLoading] = useState(false);
 
   /**
@@ -15,20 +19,23 @@ export default function SearchResultsPage({ query, onOpenTutorial, onGoHome }) {
   useEffect(() => {
     const trimmed = query.trim();
     if (trimmed.length < 2) {
-      setResults([]);
+      setResults(EMPTY);
       return;
     }
 
     setLoading(true);
     const timer = setTimeout(() => {
-      searchTutorials(trimmed)
+      search(trimmed)
         .then(setResults)
-        .catch(() => setResults([]))
+        .catch(() => setResults(EMPTY))
         .finally(() => setLoading(false));
     }, 300);
 
     return () => clearTimeout(timer);
   }, [query]);
+
+  const { workspaces, tutorials } = results;
+  const total = workspaces.length + tutorials.length;
 
   return (
     <div className="content">
@@ -39,30 +46,67 @@ export default function SearchResultsPage({ query, onOpenTutorial, onGoHome }) {
         </button>
       </div>
       <p className="search-results-note">
-        {loading ? "Buscando…" : `${results.length} resultado(s) para "${query}"`}
+        {loading ? "Buscando…" : `${total} resultado(s) para "${query}"`}
       </p>
-      <div className="tut-list">
-        {!loading && results.length === 0 && (
+
+      {!loading && total === 0 && (
+        <div className="tut-list">
           <div className="empty-state">Nada encontrado. Tente outro termo.</div>
-        )}
-        {results.map((t) => (
-          <button className="tut-row" key={t.id} onClick={() => onOpenTutorial(t)}>
-            <div className={"tut-icon " + t.content_type}>
-              {t.content_type === "structured" ? "≡" : "T"}
-            </div>
-            <div className="tut-main">
-              <div className="tut-title">{t.title}</div>
-              {/* A busca cruza vários workspaces, então mostra de onde
-                  cada resultado veio (workspace/tab), não só o resumo. */}
-              <div className="tut-summary">
-                {t.workspace_name} / {t.tab_name}
-                {t.summary ? " — " + t.summary : ""}
-              </div>
-            </div>
-            <span className="tut-tag">{t.content_type === "structured" ? "PASSOS" : "TEXTO"}</span>
-          </button>
-        ))}
-      </div>
+        </div>
+      )}
+
+      {/* Cada grupo só aparece se tiver resultado, para não mostrar um
+          título "Workspaces 0" vazio no meio da tela. */}
+      {workspaces.length > 0 && (
+        <>
+          <div className="page-title">
+            <h1 style={{ fontSize: 15 }}>
+              Workspaces<span className="count">{workspaces.length}</span>
+            </h1>
+          </div>
+          <div className="tut-list" style={{ marginBottom: 20 }}>
+            {workspaces.map((ws) => (
+              <button className="tut-row" key={ws.id} onClick={() => onOpenWorkspace(ws)}>
+                <div className="tut-icon workspace">{initials(ws.name)}</div>
+                <div className="tut-main">
+                  <div className="tut-title">{ws.name}</div>
+                  <div className="tut-summary">{ROLE_LABELS[ws.my_role] || ""}</div>
+                </div>
+                <span className="tut-tag">WORKSPACE</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {tutorials.length > 0 && (
+        <>
+          <div className="page-title">
+            <h1 style={{ fontSize: 15 }}>
+              Tutoriais<span className="count">{tutorials.length}</span>
+            </h1>
+          </div>
+          <div className="tut-list">
+            {tutorials.map((t) => (
+              <button className="tut-row" key={t.id} onClick={() => onOpenTutorial(t)}>
+                <div className={"tut-icon " + t.content_type}>
+                  {t.content_type === "structured" ? "≡" : "T"}
+                </div>
+                <div className="tut-main">
+                  <div className="tut-title">{t.title}</div>
+                  {/* A busca cruza vários workspaces, então mostra de onde
+                      cada resultado veio (workspace/tab), não só o resumo. */}
+                  <div className="tut-summary">
+                    {t.workspace_name} / {t.tab_name}
+                    {t.summary ? " — " + t.summary : ""}
+                  </div>
+                </div>
+                <span className="tut-tag">{t.content_type === "structured" ? "PASSOS" : "TEXTO"}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

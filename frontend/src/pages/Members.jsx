@@ -1,7 +1,7 @@
 /**
  * Página de membros de um workspace. Qualquer membro vê a lista; o
- * formulário de convite só aparece para admin. O papel do usuário logado é
- * descoberto pela própria lista de membros (não há outra rota para isso).
+ * formulário de convite só aparece para admin. O papel do usuário logado
+ * vem no próprio workspace (my_role), devolvido pelo backend.
  */
 
 import { useState, useEffect } from "react";
@@ -19,7 +19,7 @@ export default function MembersPage({ user, workspace }) {
   const [inviteError, setInviteError] = useState("");
   const [inviting, setInviting] = useState(false);
 
-  const isAdmin = members.find((m) => m.user_id === user.id)?.role === "admin";
+  const isAdmin = workspace.my_role === "admin";
 
   useEffect(() => {
     loadMembers();

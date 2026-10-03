@@ -115,6 +115,10 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
 
   const isStructured = tutorial.content_type === "structured";
 
+  // Só admin edita, apaga e mexe nas imagens. Esconder é conforto visual;
+  // o backend (require_admin) barra quem tentar mesmo assim.
+  const isAdmin = workspace.my_role === "admin";
+
   const structuredSteps = isStructured
     ? (steps || []).map((s) => ({
         title: s.title,
@@ -137,12 +141,14 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
       <div className="tut-detail">
         <div className="tut-detail-header">
           <h1>{tutorial.title}</h1>
-          <OptionsMenu
-            items={[
-              { label: "Editar", onClick: handleEditPlaceholder },
-              { label: "Excluir tutorial", danger: true, onClick: handleDeleteTutorial },
-            ]}
-          />
+          {isAdmin && (
+            <OptionsMenu
+              items={[
+                { label: "Editar", onClick: handleEditPlaceholder },
+                { label: "Excluir tutorial", danger: true, onClick: handleDeleteTutorial },
+              ]}
+            />
+          )}
         </div>
         <div className="meta-line">
           {isStructured ? "Tutorial estruturado" : "Tutorial em texto corrido"}
@@ -160,16 +166,20 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
           <h1 style={{ fontSize: 15 }}>
             Imagens<span className="count">{unassignedImages.length}</span>
           </h1>
-          <button className="btn-new" onClick={() => fileInputRef.current.click()} disabled={uploading}>
-            {uploading ? "Enviando…" : "+ Adicionar imagem"}
-          </button>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            ref={fileInputRef}
-            style={{ display: "none" }}
-            onChange={handleFileSelected}
-          />
+          {isAdmin && (
+            <>
+              <button className="btn-new" onClick={() => fileInputRef.current.click()} disabled={uploading}>
+                {uploading ? "Enviando…" : "+ Adicionar imagem"}
+              </button>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                onChange={handleFileSelected}
+              />
+            </>
+          )}
         </div>
 
         {unassignedImages.length === 0 ? (
@@ -183,9 +193,11 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
                   <button className="image-thumb-open" onClick={() => setLightboxIndex(fullIndex)}>
                     <img src={`${API_URL}${img.image_url}`} alt={img.caption || tutorial.title} />
                   </button>
-                  <button className="image-thumb-remove" onClick={() => handleDeleteImage(img.id)}>
-                    ×
-                  </button>
+                  {isAdmin && (
+                    <button className="image-thumb-remove" onClick={() => handleDeleteImage(img.id)}>
+                      ×
+                    </button>
+                  )}
                   {img.caption && <div className="image-thumb-caption">{img.caption}</div>}
                 </div>
               );

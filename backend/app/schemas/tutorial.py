@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import Literal
 
+from app.models.membership import MembershipRole
+
 
 class TutorialBase(BaseModel):
     title: str
@@ -52,6 +54,10 @@ class TutorialSearchResult(BaseModel):
     tab_name: str
     workspace_id: int
     workspace_name: str
+    # Papel do usuário no workspace do resultado. Necessário porque, ao abrir
+    # um tutorial pela busca, o frontend não passou pela lista de workspaces
+    # e não teria outra forma de saber se mostra os botões de admin.
+    workspace_role: MembershipRole
 
     class Config:
         from_attributes = True

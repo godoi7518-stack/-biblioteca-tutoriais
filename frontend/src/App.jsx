@@ -89,16 +89,23 @@ export default function App() {
             setSearchQuery("");
             setView({ page: "workspaces" });
           }}
+          // Workspace achado pela busca já vem no mesmo formato da lista de
+          // workspaces (inclusive my_role), então abre direto.
+          onOpenWorkspace={(ws) => {
+            setSearchQuery("");
+            setView({ page: "tabs", workspace: ws });
+          }}
           onOpenTutorial={(t) => {
             setSearchQuery("");
             // O resultado da busca traz workspace_id/workspace_name em vez
             // de um objeto workspace pronto (a busca cruza vários
             // workspaces, não só o que estava aberto) — monta o objeto
-            // aqui para manter o mesmo formato usado no resto do app.
+            // aqui para manter o mesmo formato usado no resto do app,
+            // incluindo o papel (my_role), que decide os botões de admin.
             setView({
               page: "tutorial",
               tutorial: t,
-              workspace: { id: t.workspace_id, name: t.workspace_name },
+              workspace: { id: t.workspace_id, name: t.workspace_name, my_role: t.workspace_role },
               tabId: t.tab_id,
             });
           }}
