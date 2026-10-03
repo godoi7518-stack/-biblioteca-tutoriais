@@ -8,7 +8,7 @@ import OptionsMenu from "../components/OptionsMenu";
 import TutorialForm from "../components/TutorialForm";
 import { useDialog } from "../components/DialogProvider";
 
-export default function TutorialDetailPage({ workspace, tabId, tutorialId, initialTutorial, onDeleted, onUpdated }) {
+export default function TutorialDetailPage({ user, workspace, tabId, tutorialId, initialTutorial, onDeleted, onUpdated }) {
   const [tutorial, setTutorial] = useState(initialTutorial || null);
   const [steps, setSteps] = useState(null);
   const [images, setImages] = useState([]);
@@ -239,6 +239,7 @@ export default function TutorialDetailPage({ workspace, tabId, tutorialId, initi
 
       {editing && (
         <TutorialForm
+          userId={user.id}
           workspaceId={workspace.id}
           tabId={tabId}
           tutorial={tutorial}

@@ -7,13 +7,19 @@
  * ao backend, que grava tudo ou nada. Imagens vão DEPOIS, em chamadas
  * separadas, porque precisam do id do passo — e um passo novo só tem id
  * depois de salvo.
+ *
+ * Rascunho: tudo o que é digitado fica salvo no navegador (utils/drafts.js)
+ * enquanto o formulário está aberto. Fechar sem querer (Esc, clique fora)
+ * não perde nada: ao reabrir, o rascunho é restaurado. Salvar o tutorial
+ * apaga o rascunho.
  */
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { createTutorial, updateTutorial, uploadImage, deleteImage, API_URL } from "../services/api";
 import { PlusIcon } from "./Icons";
 import Modal from "./Modal";
 import { useDialog } from "./DialogProvider";
+import { draftKey, loadDraft, saveDraft, clearDraft } from "../utils/drafts";
 
 const textareaStyle = {
   width: "100%",
@@ -26,9 +32,10 @@ const textareaStyle = {
   resize: "vertical",
 };
 
-export default function TutorialForm({ workspaceId, tabId, tutorial, steps, images, onSaved, onCancel }) {
+export default function TutorialForm({ userId, workspaceId, tabId, tutorial, steps, images, onSaved, onCancel }) {
   const isEdit = Boolean(tutorial);
   const dialog = useDialog();
+  const key = draftKey({ userId, workspaceId, tabId, tutorialId: tutorial?.id });
 
   // Cada passo do formulário ganha uma "key" própria e estável. Usar o
   // índice como key do React quebraria ao reordenar (o campo de arquivo
@@ -43,28 +50,152 @@ export default function TutorialForm({ workspaceId, tabId, tutorial, steps, imag
     return { key: newKey(), id: null, title: "", content: "", is_critical: false, image: null, existingImages: [] };
   }
 
-  const [type, setType] = useState(tutorial?.content_type || "simple");
-  const [title, setTitle] = useState(tutorial?.title || "");
-  const [summary, setSummary] = useState(tutorial?.summary || "");
-  const [content, setContent] = useState(tutorial?.content || "");
-  const [formSteps, setFormSteps] = useState(() =>
-    steps && steps.length > 0
-      ? steps.map((s) => ({
-          key: newKey(),
-          id: s.id,
-          title: s.title || "",
-          content: s.content,
-          is_critical: s.is_critical,
-          image: null,
-          // Imagens já salvas deste passo; "removed" marca as que o
-          // usuário tirou — só são apagadas de verdade ao salvar, para
-          // que "Cancelar" desfaça tudo.
-          existingImages: (images || []).filter((img) => img.step_id === s.id).map((img) => ({ ...img, removed: false })),
-        }))
-      : [emptyStep()]
-  );
+  /** Imagens já salvas de um passo; "removed" marca as que o usuário tirou
+      (só são apagadas de verdade ao salvar, então fechar desfaz). */
+  function savedImagesOf(stepId, removedIds = []) {
+    return (images || [])
+      .filter((img) => img.step_id === stepId)
+      .map((img) => ({ ...img, removed: removedIds.includes(img.id) }));
+  }
+
+  /** Valores do tutorial como está salvo (ou vazio, se for novo). */
+  function originalValues() {
+    return {
+      type: tutorial?.content_type || "simple",
+      title: tutorial?.title || "",
+      summary: tutorial?.summary || "",
+      content: tutorial?.content || "",
+      steps:
+        steps && steps.length > 0
+          ? steps.map((st) => ({
+              key: newKey(),
+              id: st.id,
+              title: st.title || "",
+              content: st.content,
+              is_critical: st.is_critical,
+              image: null,
+              existingImages: savedImagesOf(st.id),
+            }))
+          : [emptyStep()],
+    };
+  }
+
+  /** Valores de um rascunho salvo. Um passo do rascunho que não existe mais
+      no tutorial (apagado depois) volta como passo novo, sem perder o texto. */
+  function valuesFromDraft(d) {
+    const currentIds = new Set((steps || []).map((st) => st.id));
+    return {
+      type: isEdit ? tutorial.content_type : d.type,
+      title: d.title,
+      summary: d.summary,
+      content: d.content,
+      steps:
+        d.steps && d.steps.length > 0
+          ? d.steps.map((ds) => {
+              const stillExists = ds.id != null && currentIds.has(ds.id);
+              return {
+                key: newKey(),
+                id: stillExists ? ds.id : null,
+                title: ds.title,
+                content: ds.content,
+                is_critical: ds.is_critical,
+                image: null,
+                existingImages: stillExists ? savedImagesOf(ds.id, ds.removedImageIds || []) : [],
+              };
+            })
+          : [emptyStep()],
+    };
+  }
+
+  /** Versão em texto do formulário (sem as keys internas nem arquivos),
+      usada para salvar o rascunho e para saber se algo foi alterado. */
+  function snapshot(v) {
+    return JSON.stringify({
+      type: v.type,
+      title: v.title,
+      summary: v.summary,
+      content: v.content,
+      steps: v.steps.map((st) => ({
+        id: st.id,
+        title: st.title,
+        content: st.content,
+        is_critical: st.is_critical,
+        removedImageIds: st.existingImages.filter((img) => img.removed).map((img) => img.id),
+      })),
+    });
+  }
+
+  // Calculado uma vez, ao abrir: se existe rascunho, começa por ele.
+  const [initial] = useState(() => {
+    const original = originalValues();
+    const draft = loadDraft(key);
+    return {
+      originalSnapshot: snapshot(original),
+      draft,
+      values: draft ? valuesFromDraft(draft) : original,
+    };
+  });
+
+  const [type, setType] = useState(initial.values.type);
+  const [title, setTitle] = useState(initial.values.title);
+  const [summary, setSummary] = useState(initial.values.summary);
+  const [content, setContent] = useState(initial.values.content);
+  const [formSteps, setFormSteps] = useState(initial.values.steps);
+  const [restoredDraft, setRestoredDraft] = useState(initial.draft);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  // Depois de salvar com sucesso, o rascunho não deve ser gravado de novo.
+  const finished = useRef(false);
+
+  const currentSnapshot = snapshot({ type, title, summary, content, steps: formSteps });
+  const isDirty = currentSnapshot !== initial.originalSnapshot;
+
+  function persistDraft() {
+    if (finished.current) return;
+    if (isDirty) {
+      saveDraft(key, { ...JSON.parse(currentSnapshot), baseUpdatedAt: tutorial?.updated_at || null });
+    } else {
+      clearDraft(key);
+    }
+  }
+
+  // Salva o rascunho meio segundo depois da última alteração (não a cada
+  // tecla, para não escrever no navegador o tempo todo).
+  useEffect(() => {
+    const timer = setTimeout(persistDraft, 500);
+    return () => clearTimeout(timer);
+  }, [currentSnapshot]);
+
+  /** Fechar (Esc, clique fora, botão): grava o rascunho na hora, para não
+      perder o que foi digitado nesse último meio segundo. */
+  function handleClose() {
+    persistDraft();
+    onCancel();
+  }
+
+  async function handleDiscardDraft() {
+    const ok = await dialog.confirm({
+      title: "Descartar rascunho",
+      message: isEdit
+        ? "As alterações não salvas serão perdidas e o formulário volta para a versão salva do tutorial."
+        : "Tudo o que foi digitado neste rascunho será perdido.",
+      confirmLabel: "Descartar",
+      danger: true,
+    });
+    if (!ok) return;
+    const original = originalValues();
+    setType(original.type);
+    setTitle(original.title);
+    setSummary(original.summary);
+    setContent(original.content);
+    setFormSteps(original.steps);
+    setRestoredDraft(null);
+    clearDraft(key);
+  }
+
+  // Rascunho de edição feito antes de alguém salvar outra versão do tutorial.
+  const draftIsStale =
+    restoredDraft && isEdit && restoredDraft.baseUpdatedAt && restoredDraft.baseUpdatedAt !== tutorial.updated_at;
 
   function updateStep(index, field, value) {
     setFormSteps((prev) => prev.map((s, i) => (i === index ? { ...s, [field]: value } : s)));
@@ -130,6 +261,10 @@ export default function TutorialForm({ workspaceId, tabId, tutorial, steps, imag
       return;
     }
 
+    // O texto está salvo no servidor: o rascunho não é mais necessário.
+    finished.current = true;
+    clearDraft(key);
+
     // Texto salvo. Agora as imagens: a resposta traz os passos na mesma
     // ordem do formulário, então saved.steps[i] é o passo formSteps[i].
     const failures = [];
@@ -164,7 +299,30 @@ export default function TutorialForm({ workspaceId, tabId, tutorial, steps, imag
   }
 
   return (
-    <Modal title={isEdit ? "Editar tutorial" : "Novo tutorial"} onClose={onCancel} wide>
+    <Modal title={isEdit ? "Editar tutorial" : "Novo tutorial"} onClose={handleClose} wide>
+      {restoredDraft && (
+        <div className="draft-banner">
+          <div>
+            <strong>Rascunho restaurado</strong> (salvo em{" "}
+            {new Date(restoredDraft.savedAt).toLocaleString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+            ). Imagens escolhidas antes precisam ser selecionadas de novo.
+            {draftIsStale && (
+              <div className="draft-banner-warning">
+                O tutorial foi alterado depois deste rascunho. Ao salvar, a versão do rascunho substitui a atual.
+              </div>
+            )}
+          </div>
+          <button type="button" className="link-button" onClick={handleDiscardDraft}>
+            Descartar rascunho
+          </button>
+        </div>
+      )}
+
       {error && <div className="login-error">{error}</div>}
 
       <form onSubmit={handleSubmit}>
@@ -321,13 +479,18 @@ export default function TutorialForm({ workspaceId, tabId, tutorial, steps, imag
         )}
 
         <div className="modal-actions" style={{ marginTop: 14 }}>
-          <button type="button" className="btn-new" onClick={onCancel}>
-            Cancelar
+          <button type="button" className="btn-new" onClick={handleClose}>
+            Fechar
           </button>
           <button className="btn-primary" disabled={submitting}>
             {submitting ? "Salvando…" : isEdit ? "Salvar alterações" : "Criar tutorial"}
           </button>
         </div>
+        {isDirty && (
+          <p className="login-note" style={{ textAlign: "center" }}>
+            O que você digitou fica salvo como rascunho neste navegador até você salvar ou descartar.
+          </p>
+        )}
       </form>
     </Modal>
   );

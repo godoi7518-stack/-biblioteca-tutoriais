@@ -440,3 +440,13 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
 .btn-danger { background: var(--critical); }
 .btn-danger:hover { background: #8f1e18; }
 
+/* Aviso de rascunho restaurado no formulário de tutorial. */
+.draft-banner {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  background: var(--blue-100); border-left: 3px solid var(--blue-500);
+  padding: 8px 10px; margin-bottom: 14px; border-radius: var(--radius);
+  font-size: 12.5px; color: var(--text);
+}
+.draft-banner .link-button { font-size: 12px; white-space: nowrap; }
+.draft-banner-warning { margin-top: 4px; color: var(--critical); }
+

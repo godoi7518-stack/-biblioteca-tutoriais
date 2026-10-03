@@ -4,6 +4,7 @@ import { PlusIcon } from "../components/Icons";
 import OptionsMenu from "../components/OptionsMenu";
 import TutorialForm from "../components/TutorialForm";
 import { useDialog } from "../components/DialogProvider";
+import { draftKey, hasDraft } from "../utils/drafts";
 
 export default function TabsPage({ user, workspace, activeTabId, onSelectTab, onOpenTutorial, onOpenMembers }) {
   const [tabs, setTabs] = useState([]);
@@ -187,7 +188,11 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
         </h1>
         {isAdmin && currentTabId && (
           <button className="btn-new" onClick={() => setShowForm(true)}>
-            <PlusIcon /> Novo tutorial
+            <PlusIcon />{" "}
+            {/* Recalculado a cada render (ex.: ao fechar o formulário). */}
+            {hasDraft(draftKey({ userId: user.id, workspaceId: workspace.id, tabId: currentTabId }))
+              ? "Continuar rascunho"
+              : "Novo tutorial"}
           </button>
         )}
       </div>
@@ -231,6 +236,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
 
       {showForm && (
         <TutorialForm
+          userId={user.id}
           workspaceId={workspace.id}
           tabId={currentTabId}
           tutorial={null}
