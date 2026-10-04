@@ -109,6 +109,21 @@ class TutorialSearchResult(BaseModel):
     # um tutorial pela busca, o frontend não passou pela lista de workspaces
     # e não teria outra forma de saber se mostra os botões de admin.
     workspace_role: MembershipRole
+    # Onde a palavra foi encontrada, para a tela explicar por que o
+    # resultado apareceu: "title", "summary", "content" ou "step".
+    match_in: Literal["title", "summary", "content", "step"] | None = None
+    match_step: int | None = None   # número do passo, quando match_in = "step"
+    snippet: str | None = None      # trecho do texto em volta da palavra
 
     class Config:
         from_attributes = True
+
+
+class TabSearchResult(BaseModel):
+    """Categoria encontrada pelo nome na busca global."""
+
+    id: int
+    name: str
+    workspace_id: int
+    workspace_name: str
+    workspace_role: MembershipRole

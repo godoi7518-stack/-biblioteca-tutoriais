@@ -164,6 +164,15 @@ export default function App() {
             setSearchQuery("");
             setView({ page: "tabs", workspace: ws });
           }}
+          // Categoria achada pela busca: abre o workspace já nela.
+          onOpenTab={(tab) => {
+            setSearchQuery("");
+            setView({
+              page: "tabs",
+              workspace: { id: tab.workspace_id, name: tab.workspace_name, my_role: tab.workspace_role },
+              tabId: tab.id,
+            });
+          }}
           onOpenTutorial={(t) => {
             setSearchQuery("");
             // O resultado da busca traz workspace_id/workspace_name em vez

@@ -44,7 +44,7 @@ export const TOURS = {
     {
       target: "search",
       title: "Busca",
-      text: "Procure qualquer tutorial ou workspace por aqui. Não precisa digitar a palavra inteira.",
+      text: "Procure tutoriais, categorias e workspaces por aqui, inclusive palavras de dentro dos passos. Não precisa digitar a palavra inteira.",
     },
     {
       target: "theme",

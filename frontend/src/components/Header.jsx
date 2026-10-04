@@ -29,8 +29,8 @@ export default function Header({ user, role, onLogout, onGoHome, onHelp, searchQ
         <SearchIcon />
         <input
           type="search"
-          placeholder="Buscar workspaces e tutoriais…"
-          aria-label="Buscar workspaces e tutoriais"
+          placeholder="Buscar tutoriais, categorias e workspaces…"
+          aria-label="Buscar tutoriais, categorias e workspaces"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
         />
