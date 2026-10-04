@@ -2,12 +2,13 @@ import { useEffect } from "react";
 import { ArrowLeftIcon, ArrowRightIcon } from "./Icons";
 
 /**
- * Modal de imagem em tela cheia, com navegação entre imagens da galeria.
- * Recebe a lista inteira de images + o index atual (não uma imagem
- * isolada) para poder saber se existe anterior/próxima e navegar sozinho.
- * index null (ou images vazio) significa "fechado" — não renderiza nada.
+ * Modal de imagem em tela cheia, com navegação entre imagens de UM grupo
+ * (as imagens de um passo, ou as imagens gerais do tutorial — nunca
+ * misturadas). Recebe a lista do grupo + o index atual, para saber se
+ * existe anterior/próxima. label diz de onde é a imagem ("Passo 2",
+ * "Imagens gerais"). index null (ou images vazio) = fechado.
  */
-export default function ImageLightbox({ images, index, apiUrl, onClose, onNavigate }) {
+export default function ImageLightbox({ images, index, label, apiUrl, onClose, onNavigate }) {
   const image = images && index != null ? images[index] : null;
 
   // Atalhos de teclado: Escape fecha, setas navegam. Só registra o
@@ -71,11 +72,10 @@ export default function ImageLightbox({ images, index, apiUrl, onClose, onNaviga
         </div>
       )}
 
-      {images.length > 1 && (
-        <div className="lightbox-counter">
-          {index + 1} / {images.length}
-        </div>
-      )}
+      <div className="lightbox-counter">
+        {label}
+        {images.length > 1 && ` · ${index + 1} de ${images.length}`}
+      </div>
     </div>
   );
 }
