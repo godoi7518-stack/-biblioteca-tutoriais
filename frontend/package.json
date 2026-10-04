@@ -1,6 +1,7 @@
 {
   "name": "biblioteca-tutoriais-frontend",
   "description": "Frontend da Biblioteca de Tutoriais (React + Vite)",
+  "license": "UNLICENSED",
   "private": true,
   "version": "0.2.0",
   "type": "module",
