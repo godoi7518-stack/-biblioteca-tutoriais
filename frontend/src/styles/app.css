@@ -514,3 +514,5 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
 /* Variante do "?" para fundo claro (ex.: dentro do formulário). */
 .help-button.inline { background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; font-size: 13px; }
 .help-button.inline:hover { border-color: var(--blue-500); color: var(--blue-700); background: var(--blue-100); }
+/* Explicação embaixo do título "Imagens gerais" nos tutoriais passo a passo. */
+.gallery-note { margin: -10px 0 12px; font-size: 12px; color: var(--text-muted); }

@@ -16,7 +16,9 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const [lightboxIndex, setLightboxIndex] = useState(null);
+  // Visualizador em tela cheia: { images, index, label } do grupo aberto
+  // (imagens de um passo OU imagens gerais), ou null quando fechado.
+  const [lightbox, setLightbox] = useState(null);
   const [editing, setEditing] = useState(false);
   const dialog = useDialog();
   // Incrementado depois de salvar uma edição: entra nas dependências do
@@ -120,12 +122,18 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
     }
   }
 
-  // Encontra a posição de uma imagem de passo dentro da lista completa de
-  // imagens do tutorial, para abrir o lightbox no lugar certo — a navegação
-  // por setas continua passando por todas as imagens, não só as do passo.
+  /** Abre o visualizador navegando só dentro de um grupo de imagens. */
+  function openLightbox(group, img, label) {
+    const index = group.findIndex((i) => i.id === img.id);
+    if (index !== -1) setLightbox({ images: group, index, label });
+  }
+
+  // Imagem clicada dentro de um passo: as setas percorrem só as imagens
+  // daquele passo (antes percorriam todas as do tutorial, misturadas).
   function handleStepImageClick(img) {
-    const idx = images.findIndex((i) => i.id === img.id);
-    if (idx !== -1) setLightboxIndex(idx);
+    const group = images.filter((i) => i.step_id === img.step_id);
+    const stepNumber = (steps || []).findIndex((s) => s.id === img.step_id) + 1;
+    openLightbox(group, img, stepNumber > 0 ? `Passo ${stepNumber}` : "Imagens do passo");
   }
 
   if (loading && !tutorial) {
@@ -166,6 +174,8 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
   // A galeria geral mostra só imagens sem passo associado — as que têm
   // step_id aparecem dentro do respectivo passo no acordeão, não aqui.
   const unassignedImages = images.filter((img) => !img.step_id);
+  // Em tutorial passo a passo, "gerais" deixa claro que não são de um passo.
+  const galleryLabel = isStructured ? "Imagens gerais" : "Imagens";
 
   return (
     // data-tour-ready / data-tour: marcadores do onboarding (src/onboarding).
@@ -202,7 +212,8 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
 
         <div className="page-title" style={{ marginTop: 24 }} data-tour="tut-images">
           <h1 style={{ fontSize: 15 }}>
-            Imagens<span className="count">{unassignedImages.length}</span>
+            {galleryLabel}
+            <span className="count">{unassignedImages.length}</span>
           </h1>
           {isAdmin && (
             <>
@@ -220,15 +231,21 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
           )}
         </div>
 
+        {isStructured && (
+          <p className="gallery-note">
+            Imagens que valem para o tutorial todo. As imagens de cada passo ficam dentro do próprio passo.
+          </p>
+        )}
         {unassignedImages.length === 0 ? (
-          <div className="empty-state">Nenhuma imagem adicionada ainda.</div>
+          <div className="empty-state">
+            {isStructured ? "Nenhuma imagem geral adicionada." : "Nenhuma imagem adicionada ainda."}
+          </div>
         ) : (
           <div className="image-gallery">
             {unassignedImages.map((img) => {
-              const fullIndex = images.findIndex((i) => i.id === img.id);
               return (
                 <div className="image-thumb" key={img.id}>
-                  <button className="image-thumb-open" onClick={() => setLightboxIndex(fullIndex)}>
+                  <button className="image-thumb-open" onClick={() => openLightbox(unassignedImages, img, galleryLabel)}>
                     <img src={`${API_URL}${img.image_url}`} alt={img.caption || tutorial.title} />
                   </button>
                   {isAdmin && (
@@ -258,11 +275,14 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
       )}
 
       <ImageLightbox
-        images={images}
-        index={lightboxIndex}
+        images={lightbox?.images}
+        index={lightbox?.index ?? null}
+        label={lightbox?.label}
         apiUrl={API_URL}
-        onClose={() => setLightboxIndex(null)}
-        onNavigate={(delta) => setLightboxIndex((i) => Math.max(0, Math.min(images.length - 1, i + delta)))}
+        onClose={() => setLightbox(null)}
+        onNavigate={(delta) =>
+          setLightbox((lb) => lb && { ...lb, index: Math.max(0, Math.min(lb.images.length - 1, lb.index + delta)) })
+        }
       />
     </div>
   );
