@@ -266,6 +266,14 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
 .tut-icon.structured { background: var(--blue-100); color: var(--blue-700); }
 /* Resultado de busca do tipo workspace: mesmas cores do ícone dos tiles. */
 .tut-icon.workspace { background: var(--blue-700); color: #fff; }
+.tut-icon.category { background: var(--blue-100); color: var(--blue-700); }
+/* Resultados da busca: caminho (workspace › categoria), motivo e destaque. */
+.search-path { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+.search-path svg { width: 12px; height: 12px; flex-shrink: 0; }
+.search-path-sep { margin: 0 2px; }
+.search-reason { font-size: 12.3px; color: var(--subtitle-color); margin-top: 3px; line-height: 1.45; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.search-reason-label { font-weight: 600; color: var(--text-muted); }
+mark.search-hit { background: rgba(255, 196, 0, 0.35); color: inherit; padding: 0 1px; border-radius: 2px; }
 .tut-main { flex: 1; min-width: 0; }
 .tut-title { font-weight: 600; font-size: 13.8px; color: var(--title-color); }
 .tut-summary { font-size: 12.3px; color: var(--subtitle-color); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

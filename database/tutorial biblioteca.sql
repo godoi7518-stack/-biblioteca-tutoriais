@@ -80,7 +80,8 @@ CREATE TABLE tutorial_steps (
     content TEXT NOT NULL,
     is_critical BOOLEAN DEFAULT FALSE,   -- destaque visual de atenção extra
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (tutorial_id) REFERENCES tutorials(id) ON DELETE CASCADE
+    FOREIGN KEY (tutorial_id) REFERENCES tutorials(id) ON DELETE CASCADE,
+    FULLTEXT KEY ft_steps (title, content)  -- busca dentro dos passos
 );
 
 -- ============================================
