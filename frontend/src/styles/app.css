@@ -374,25 +374,51 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
 .tut-detail-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 
 /* ---------- Toggle de tipo de tutorial e construtor de passos ---------- */
-.type-toggle { display: flex; gap: 8px; }
-.type-toggle-btn {
-  flex: 1; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg); color: var(--text-muted); font-size: 13px; font-weight: 600;
-}
-.type-toggle-btn.active { border-color: var(--blue-700); color: var(--blue-700); background: var(--blue-100); }
 
 .step-builder { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px; margin-bottom: 10px; background: var(--bg); }
+/* Passo marcado como etapa crítica: borda vermelha à esquerda, como o leitor vê. */
+.step-builder.critical { border-left: 3px solid var(--critical); }
+/* Arrastar para reordenar: o bloco arrastado fica apagado e uma linha azul
+   mostra onde ele vai entrar. */
+.step-builder.dragging { opacity: 0.4; }
+.step-builder.drop-before { box-shadow: 0 -3px 0 var(--blue-500); }
+.step-builder.drop-after { box-shadow: 0 3px 0 var(--blue-500); }
+.step-drag-handle { cursor: grab; margin-right: 6px; font-size: 14px; color: var(--text-muted); user-select: none; }
+.step-drag-handle:active { cursor: grabbing; }
+.step-field-label { display: block; font-size: 11.5px; font-weight: 600; color: var(--text-muted); margin-bottom: 4px; }
+/* Etapa crítica: um "botão" visível no lugar de um checkbox pequeno. */
+.critical-toggle {
+  display: flex; align-items: center; gap: 8px; margin-top: 10px; cursor: pointer;
+  padding: 7px 10px; border: 1px dashed var(--border); border-radius: var(--radius);
+  font-size: 12.5px; color: var(--text-muted); background: var(--surface);
+}
+.critical-toggle:hover { border-color: var(--critical); }
+.critical-toggle input { width: auto; margin: 0; accent-color: var(--critical); }
+.critical-toggle-icon { font-size: 14px; }
+.critical-toggle-hint { font-size: 11.5px; }
+.critical-toggle.on { border-style: solid; border-color: var(--critical); background: var(--critical-bg); color: var(--critical); }
+/* Escolha do formato: cartões com explicação, em vez de dois botões secos. */
+.type-options { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.type-option {
+  display: flex; flex-direction: column; gap: 4px; text-align: left;
+  padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text);
+}
+.type-option:hover { border-color: var(--blue-500); }
+.type-option.active { border: 2px solid var(--blue-700); padding: 9px 11px; background: var(--blue-100); }
+.type-option-title { font-weight: 600; font-size: 13.5px; color: var(--title-color); }
+.type-option-desc { font-size: 12px; line-height: 1.45; color: var(--text-muted); }
+@media (max-width: 520px) { .type-options { grid-template-columns: 1fr; } }
 .step-builder input { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); color: var(--text); font-size: 13px; }
 .step-builder-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .step-builder-num { font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.3px; }
 .step-builder-remove { background: none; border: none; color: var(--critical); font-size: 12px; padding: 0; }
 .step-builder-actions { display: flex; align-items: center; gap: 10px; }
+.step-move-buttons { display: inline-flex; gap: 4px; }
 /* Botões ↑ ↓ de reordenar passos no formulário de tutorial. */
 .step-builder-move { background: none; border: 1px solid var(--border); border-radius: var(--radius); color: var(--text-muted); font-size: 12px; line-height: 1; padding: 3px 7px; }
 .step-builder-move:hover:not(:disabled) { border-color: var(--blue-500); color: var(--text); }
 .step-builder-move:disabled { opacity: 0.35; cursor: default; }
-.step-critical-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-muted); margin-top: 8px; }
-.step-critical-toggle input { width: auto; }
 
 .step-image-upload { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 12px; color: var(--text-muted); }
 .step-image-upload input[type="file"] { font-size: 12px; color: var(--text-muted); }
@@ -432,7 +458,8 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
   padding: 28px 28px 24px;
 }
 .modal-card.wide { max-width: 560px; }
-.modal-title { margin: 0 0 16px; font-size: 16px; font-weight: 600; color: var(--title-color); }
+.modal-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.modal-title { margin: 0; font-size: 16px; font-weight: 600; color: var(--title-color); }
 .modal-message { margin: 0 0 18px; font-size: 13.5px; line-height: 1.55; color: var(--text); white-space: pre-line; }
 .modal-actions { display: flex; gap: 8px; margin-top: 6px; }
 .modal-actions > button { flex: 1; margin-top: 0; justify-content: center; font-size: 13.5px; padding: 9px 12px; }
@@ -484,4 +511,6 @@ button.crumb:focus-visible { outline: 2px solid var(--blue-500); outline-offset:
   font-size: 15px; font-weight: 700;
 }
 .help-button:hover { background: rgba(255, 255, 255, 0.18); }
-
+/* Variante do "?" para fundo claro (ex.: dentro do formulário). */
+.help-button.inline { background: var(--bg); border: 1px solid var(--border); color: var(--text-muted); width: 28px; height: 28px; font-size: 13px; }
+.help-button.inline:hover { border-color: var(--blue-500); color: var(--blue-700); background: var(--blue-100); }

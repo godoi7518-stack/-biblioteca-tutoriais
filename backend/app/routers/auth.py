@@ -80,6 +80,7 @@ ONBOARDING_TOURS = {
     "tabs-admin", "tabs-member",
     "tutorial-admin", "tutorial-member",
     "members-admin", "members-member",
+    "tutorial-form",
 }
 
 

@@ -134,6 +134,46 @@ export const TOURS = {
     },
   ],
 
+  // Mini-tour do formulário de tutorial (aberto pelo próprio TutorialForm na
+  // primeira vez que um admin cria ou edita um tutorial).
+  "tutorial-form": [
+    {
+      target: "form-type",
+      title: "Escolha o formato",
+      text: "Passo a passo é o mais indicado para procedimentos: cada etapa vira um bloco que o leitor abre e segue na ordem.",
+    },
+    {
+      target: "form-step",
+      title: "Cada passo",
+      text: "Escreva um título curto dizendo o que fazer e, embaixo, como fazer.",
+    },
+    {
+      target: "form-critical",
+      title: "Etapa crítica",
+      text: "Marque as etapas que não podem dar errado. Elas aparecem em vermelho para quem lê.",
+    },
+    {
+      target: "form-image",
+      title: "Imagem do passo",
+      text: "Anexe um print ou uma foto para mostrar exatamente onde clicar ou o que conferir.",
+    },
+    {
+      target: "form-add-step",
+      title: "Mais passos",
+      text: "Adicione quantos passos precisar. Depois dá para mudar a ordem, como mostram os próximos balões.",
+    },
+    {
+      target: "form-drag",
+      title: "Mudar a ordem arrastando",
+      text: "Segure a alça ⠿ ao lado do número do passo e arraste para cima ou para baixo. Uma linha azul mostra onde o passo vai entrar.",
+    },
+    {
+      target: "form-move",
+      title: "Ou use as setas",
+      text: "As setas ↑ ↓ sobem ou descem o passo uma posição. Funcionam também no celular, onde arrastar não está disponível.",
+    },
+  ],
+
   "members-member": [
     {
       target: "members-leave",
