@@ -4,7 +4,7 @@ A biblioteca de processos da sua empresa, em passos simples que qualquer pessoa 
 
 Plataforma web para centralizar os procedimentos internos de uma equipe: reimpressão de etiquetas, fechamento de caixa, rotinas de linha, tudo o que hoje fica espalhado em conversas, planilhas ou na memória de poucas pessoas. Um administrador cria um **workspace**, organiza o conteúdo em **categorias** e convida a equipe. Os membros consultam e buscam os tutoriais, que podem ser escritos em **texto corrido** ou **passo a passo**, com etapas críticas em destaque e imagem em cada passo.
 
-> Projeto pessoal em desenvolvimento ativo, feito por Gabriel Godoi. O código está público para fins de portfólio. Veja a [licença](#-licença).
+> Projeto pessoal em desenvolvimento ativo, feito por Gabriel De Godoi Pereira Silva. O código está público para fins de portfólio. Veja a [licença](#-licença).
 
 ## ✨ Funcionalidades
 
@@ -120,6 +120,6 @@ Acesse `http://localhost:5173` e crie uma conta pela própria tela de login.
 
 ## 📄 Licença
 
-Copyright © 2026 Gabriel Godoi. **Todos os direitos reservados.**
+Copyright © 2026 Gabriel De Godoi Pereira Silva. **Todos os direitos reservados.**
 
 Este repositório está público **apenas para demonstração e avaliação**. Você pode visualizar o código e executá-lo localmente para avaliar o trabalho. Copiar, modificar, distribuir ou usar o código com fins comerciais **não é permitido** sem autorização por escrito. Os termos completos estão no arquivo [LICENSE](LICENSE).
