@@ -1,6 +1,8 @@
 /**
  * Barra superior fixa: nome do site (volta ao início), busca global, selo
- * do papel no workspace aberto, botão de tema claro/escuro, usuário e Sair.
+ * do papel no workspace aberto, ajuda ("?", reabre o tour da tela), botão
+ * de tema claro/escuro, usuário e Sair. Os data-tour marcam elementos que o
+ * tour de onboarding destaca.
  *
  * Em tela estreita (celular) a busca desce para uma segunda linha — ver
  * .shell-header no app.css.
@@ -9,20 +11,21 @@
 import { SearchIcon, SunIcon, MoonIcon } from "./Icons";
 import { initials } from "../utils/helpers";
 import { useTheme } from "../utils/theme";
+import { APP_NAME } from "../config/brand";
 
 const ROLE_LABELS = { admin: "ADMIN", member: "MEMBRO" };
 
-export default function Header({ user, role, onLogout, onGoHome, searchQuery, onSearchChange }) {
+export default function Header({ user, role, onLogout, onGoHome, onHelp, searchQuery, onSearchChange }) {
   const { theme, toggleTheme } = useTheme();
   const nextThemeLabel = theme === "dark" ? "Mudar para modo claro" : "Mudar para modo escuro";
 
   return (
     <header className="shell-header">
       <button className="app-name" onClick={onGoHome} title="Ir para o início">
-        Biblioteca de Tutoriais
+        {APP_NAME}
       </button>
 
-      <div className="header-search">
+      <div className="header-search" data-tour="search">
         <SearchIcon />
         <input
           type="search"
@@ -41,7 +44,19 @@ export default function Header({ user, role, onLogout, onGoHome, searchQuery, on
             {ROLE_LABELS[role] || role}
           </span>
         )}
-        <button className="theme-toggle" onClick={toggleTheme} title={nextThemeLabel} aria-label={nextThemeLabel}>
+        {/* Só aparece em telas que têm tour (não na busca). */}
+        {onHelp && (
+          <button className="help-button" onClick={onHelp} title="Ver dicas desta tela" aria-label="Ver dicas desta tela" data-tour="help">
+            ?
+          </button>
+        )}
+        <button
+          className="theme-toggle"
+          onClick={toggleTheme}
+          title={nextThemeLabel}
+          aria-label={nextThemeLabel}
+          data-tour="theme"
+        >
           {theme === "dark" ? <SunIcon /> : <MoonIcon />}
         </button>
         <div className="user-chip" title={user.email}>

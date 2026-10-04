@@ -158,6 +158,11 @@ export async function getCurrentUser() {
   return apiFetch("/auth/me");
 }
 
+/** Marca um tour de onboarding como visto (ex.: "workspaces", "tabs-admin"). */
+export async function markOnboardingSeen(tour) {
+  return apiFetch(`/auth/me/onboarding/${encodeURIComponent(tour)}`, { method: "POST" });
+}
+
 export async function listWorkspaces() {
   return apiFetch("/workspaces");
 }

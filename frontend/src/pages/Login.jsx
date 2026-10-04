@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { login, register, getCurrentUser } from "../services/api";
+import { APP_NAME, APP_INITIALS } from "../config/brand";
 
 /**
  * Tela de entrada com dois modos no mesmo cartão: "login" e "register"
@@ -72,9 +73,9 @@ export default function Login({ onLogin }) {
     <div className="login-screen">
       <div className="login-card">
         <div className="login-brand">
-          <div className="mark">BT</div>
+          <div className="mark">{APP_INITIALS}</div>
           <div>
-            <div className="name">Biblioteca de Tutoriais</div>
+            <div className="name">{APP_NAME}</div>
             <div className="sub">{isRegister ? "Criar uma conta" : "Acesso ao grupo de trabalho"}</div>
           </div>
         </div>

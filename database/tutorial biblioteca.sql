@@ -9,6 +9,7 @@ CREATE TABLE users (
     email VARCHAR(190) UNIQUE NOT NULL,
     matricula VARCHAR(30) UNIQUE NULL,
     password_hash VARCHAR(255) NOT NULL,
+    onboarding_seen JSON NULL,           -- lista de tours de onboarding já vistos
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

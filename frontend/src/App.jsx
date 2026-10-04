@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { getCurrentUser } from "./services/api";
+import { getCurrentUser, markOnboardingSeen } from "./services/api";
 import Header from "./components/Header";
 import Breadcrumb from "./components/Breadcrumb";
 import { GridIcon, BriefcaseIcon, FolderIcon, DocumentIcon, UsersIcon } from "./components/Icons";
@@ -15,12 +15,21 @@ import TabsPage from "./pages/Tabs";
 import TutorialDetailPage from "./pages/TutorialDetail";
 import SearchResultsPage from "./pages/SearchResults";
 import MembersPage from "./pages/Members";
+import Tour from "./onboarding/Tour";
+import { TOURS, tourKeyFor } from "./onboarding/tours";
 
 export default function App() {
   const [user, setUser] = useState(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [view, setView] = useState({ page: "workspaces" });
   const [searchQuery, setSearchQuery] = useState("");
+  // Tour de onboarding aberto agora (chave de TOURS) e um contador para
+  // reiniciar o tour do zero quando o usuário clica em "?" de novo.
+  const [activeTour, setActiveTour] = useState(null);
+  const [tourRun, setTourRun] = useState(0);
+
+  const isSearching = searchQuery.trim().length > 0;
+  const currentTourKey = !isSearching ? tourKeyFor(view.page, view.workspace?.my_role) : null;
 
   // Ao carregar a página, valida a sessão a partir do token salvo (não do
   // usuário salvo cru) — assim, se o token expirou, GET /auth/me falha e a
@@ -42,6 +51,31 @@ export default function App() {
       .finally(() => setCheckingAuth(false));
   }, []);
 
+  // Abre sozinho o tour da tela na primeira vez que o usuário a visita (por
+  // papel). "Já visto" vem do backend (user.onboarding_seen), então vale em
+  // qualquer computador.
+  useEffect(() => {
+    if (!user || !currentTourKey || activeTour) return;
+    if ((user.onboarding_seen || []).includes(currentTourKey)) return;
+    setActiveTour(currentTourKey);
+  }, [user, currentTourKey]);
+
+  /** Fechou o tour (concluiu, pulou ou Esc): marca como visto. */
+  function closeTour() {
+    const key = activeTour;
+    setActiveTour(null);
+    if (!key || (user.onboarding_seen || []).includes(key)) return;
+    // Atualiza na hora (para não reabrir) e avisa o backend; se a chamada
+    // falhar, o pior caso é o tour aparecer de novo no próximo acesso.
+    setUser((u) => ({ ...u, onboarding_seen: [...(u.onboarding_seen || []), key] }));
+    markOnboardingSeen(key).catch(() => {});
+  }
+
+  function openHelp() {
+    setTourRun((n) => n + 1);
+    setActiveTour(currentTourKey);
+  }
+
   function handleLogin(u) {
     setUser(u);
   }
@@ -50,6 +84,7 @@ export default function App() {
     setUser(null);
     setView({ page: "workspaces" });
     setSearchQuery("");
+    setActiveTour(null);
     localStorage.removeItem("bt_token");
   }
 
@@ -60,8 +95,6 @@ export default function App() {
   if (!user) {
     return <Login onLogin={handleLogin} />;
   }
-
-  const isSearching = searchQuery.trim().length > 0;
 
   function goHome() {
     setSearchQuery("");
@@ -99,6 +132,7 @@ export default function App() {
         role={!isSearching ? view.workspace?.my_role : null}
         onLogout={handleLogout}
         onGoHome={goHome}
+        onHelp={currentTourKey ? openHelp : null}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
       />
@@ -171,6 +205,10 @@ export default function App() {
           onLeft={() => setView({ page: "workspaces" })}
         />
       ) : null}
+
+      {activeTour && TOURS[activeTour] && (
+        <Tour key={`${activeTour}-${tourRun}`} steps={TOURS[activeTour]} onClose={closeTour} />
+      )}
     </div>
   );
 }

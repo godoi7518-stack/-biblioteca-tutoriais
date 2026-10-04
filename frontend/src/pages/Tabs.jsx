@@ -11,6 +11,9 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   const [tutorials, setTutorials] = useState([]);
   const [loadingTabs, setLoadingTabs] = useState(true);
   const [loadingTutorials, setLoadingTutorials] = useState(false);
+  // Categoria cujos tutoriais já chegaram. Serve para o onboarding saber
+  // que a tela está pronta (ver data-tour-ready abaixo).
+  const [loadedTabId, setLoadedTabId] = useState(null);
   const [error, setError] = useState("");
   const [creatingTab, setCreatingTab] = useState(false);
 
@@ -47,7 +50,10 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   function loadTutorials(tabId) {
     setLoadingTutorials(true);
     listTutorials(workspace.id, tabId)
-      .then(setTutorials)
+      .then((data) => {
+        setTutorials(data);
+        setLoadedTabId(tabId);
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoadingTutorials(false));
   }
@@ -146,22 +152,28 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
   }
 
   return (
-    <div className="content">
+    // data-tour-ready / data-tour: marcadores do onboarding (src/onboarding).
+    <div
+      className="content"
+      // Pronta = sem categorias, ou com os tutoriais da categoria atual já
+      // carregados (evita o tour começar com a lista ainda vazia).
+      data-tour-ready={!currentTabId || (loadedTabId === currentTabId && !loadingTutorials) || undefined}
+    >
       <div className="page-title">
         <h1>{workspace.name}</h1>
         <div style={{ display: "flex", gap: 8 }}>
-          <button className="btn-new" onClick={onOpenMembers}>
+          <button className="btn-new" onClick={onOpenMembers} data-tour="members-btn">
             Membros
           </button>
           {isAdmin && (
-            <button className="btn-new" onClick={handleCreateTab} disabled={creatingTab}>
+            <button className="btn-new" onClick={handleCreateTab} disabled={creatingTab} data-tour="tab-new">
               <PlusIcon /> {creatingTab ? "Criando…" : "Nova categoria"}
             </button>
           )}
         </div>
       </div>
 
-      <div className="tab-row">
+      <div className="tab-row" data-tour={tabs.length > 0 ? "tab-row" : undefined}>
         {tabs.map((t) => (
           <div className="tab-pill-wrapper" key={t.id}>
             <button
@@ -187,7 +199,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
           Tutoriais<span className="count">{tutorials.length}</span>
         </h1>
         {isAdmin && currentTabId && (
-          <button className="btn-new" onClick={() => setShowForm(true)}>
+          <button className="btn-new" onClick={() => setShowForm(true)} data-tour="tut-new">
             <PlusIcon />{" "}
             {/* Recalculado a cada render (ex.: ao fechar o formulário). */}
             {hasDraft(draftKey({ userId: user.id, workspaceId: workspace.id, tabId: currentTabId }))
@@ -197,7 +209,7 @@ export default function TabsPage({ user, workspace, activeTabId, onSelectTab, on
         )}
       </div>
 
-      <div className="tut-list">
+      <div className="tut-list" data-tour={tutorials.length > 0 ? "tut-list" : undefined}>
         {loadingTutorials && <div className="empty-state">Carregando tutoriais…</div>}
         {!loadingTutorials && tabs.length === 0 && (
           <div className="empty-state">

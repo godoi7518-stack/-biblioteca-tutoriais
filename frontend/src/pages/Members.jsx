@@ -142,12 +142,13 @@ export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }
   }
 
   return (
-    <div className="content">
+    // data-tour-ready / data-tour: marcadores do onboarding (src/onboarding).
+    <div className="content" data-tour-ready>
       <div className="page-title">
         <h1>
           Membros<span className="count">{members.length}</span>
         </h1>
-        <button className="btn-new" onClick={handleLeave}>
+        <button className="btn-new" onClick={handleLeave} data-tour="members-leave">
           Sair do workspace
         </button>
       </div>
@@ -192,7 +193,7 @@ export default function MembersPage({ user, workspace, onMyRoleChanged, onLeft }
             <tr>
               <th>Nome</th>
               <th>E-mail</th>
-              <th>Papel</th>
+              <th data-tour={isAdmin ? "members-role" : undefined}>Papel</th>
               {isAdmin && <th className="col-actions" aria-label="Ações"></th>}
             </tr>
           </thead>

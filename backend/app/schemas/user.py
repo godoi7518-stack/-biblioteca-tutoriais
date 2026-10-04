@@ -28,7 +28,15 @@ class UserResponse(UserBase):
     id: int
     # Pode ser None para usuários cadastrados antes da matrícula existir.
     matricula: str | None = None
+    # Chaves dos tours de onboarding já vistos (ver routers/auth.py).
+    onboarding_seen: list[str] = []
     created_at: datetime
+
+    @field_validator("onboarding_seen", mode="before")
+    @classmethod
+    def nulo_vira_lista(cls, valor):
+        """No banco a coluna é NULL até o primeiro tour visto."""
+        return valor or []
 
     class Config:
         from_attributes = True
