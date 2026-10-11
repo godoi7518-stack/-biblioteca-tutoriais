@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect } from "react";
-import { getCurrentUser, markOnboardingSeen } from "./services/api";
+import { getCurrentUser, markOnboardingSeen, setUnauthorizedHandler } from "./services/api";
 import Header from "./components/Header";
 import Breadcrumb from "./components/Breadcrumb";
 import { GridIcon, BriefcaseIcon, FolderIcon, DocumentIcon, UsersIcon } from "./components/Icons";
@@ -28,9 +28,28 @@ export default function App() {
   // reiniciar o tour do zero quando o usuário clica em "?" de novo.
   const [activeTour, setActiveTour] = useState(null);
   const [tourRun, setTourRun] = useState(0);
+  // Aviso mostrado na tela de login (ex.: "Sua sessão expirou").
+  const [loginNotice, setLoginNotice] = useState("");
 
   const isSearching = searchQuery.trim().length > 0;
   const currentTourKey = !isSearching ? tourKeyFor(view.page, view.workspace?.my_role) : null;
+
+  // Sessão expirada: qualquer chamada da API que volte 401 (com token)
+  // cai aqui, e o usuário volta para o login com o aviso, em vez de ficar
+  // preso numa tela que só mostra erro. Registrado antes da checagem
+  // abaixo para valer também para o token vencido ao abrir o site. Usa só
+  // setters do React (estáveis), por isso pode ser registrado uma vez.
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      localStorage.removeItem("bt_token");
+      setUser(null);
+      setView({ page: "workspaces" });
+      setSearchQuery("");
+      setActiveTour(null);
+      setLoginNotice("Sua sessão expirou. Entre novamente.");
+    });
+    return () => setUnauthorizedHandler(null);
+  }, []);
 
   // Ao carregar a página, valida a sessão a partir do token salvo (não do
   // usuário salvo cru) — assim, se o token expirou, GET /auth/me falha e a
@@ -90,6 +109,7 @@ export default function App() {
   }
 
   function handleLogin(u) {
+    setLoginNotice("");
     setUser(u);
   }
 
@@ -106,7 +126,7 @@ export default function App() {
   }
 
   if (!user) {
-    return <Login onLogin={handleLogin} />;
+    return <Login onLogin={handleLogin} notice={loginNotice} />;
   }
 
   function goHome() {
