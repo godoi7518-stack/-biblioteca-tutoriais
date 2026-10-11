@@ -45,6 +45,7 @@ Alguns pontos que vale olhar no código:
 - **Edição atômica de tutoriais** (`backend/app/routers/tutorials.py`, `_sync_steps`): o frontend envia a lista completa de passos na ordem desejada. O backend atualiza, cria, apaga e renumera tudo numa única transação. Os arquivos de imagem só são removidos do disco **depois** do commit.
 - **Regra do último admin** com `SELECT ... FOR UPDATE`: impede que dois admins se rebaixem ao mesmo tempo e deixem o workspace sem nenhum.
 - **Busca** (`backend/app/routers/search.py`): FULLTEXT em modo BOOLEAN com prefixo, nos tutoriais e nos passos. Workspaces e categorias usam `LIKE` com curingas escapados. Tudo filtrado pelos workspaces do usuário.
+- **Armazenamento de imagens trocável** (`backend/app/core/storage.py`): disco local no desenvolvimento e Cloudflare R2 no deploy, escolhido por variável de ambiente. As rotas não sabem qual está em uso. A extensão do arquivo salvo vem do tipo validado, nunca do nome enviado.
 - **Rascunhos** guardados por usuário no navegador, para que pessoas diferentes num mesmo computador não vejam o rascunho uma da outra. **"Tour já visto"** fica no banco, para valer em qualquer computador.
 
 ## 🗂️ Estrutura
@@ -112,9 +113,12 @@ npm run dev
 ```
 Acesse `http://localhost:5173` e crie uma conta pela própria tela de login.
 
+## 🚀 Deploy
+
+Passo a passo para publicar de graça (Render + Aiven + Cloudflare R2) em [`DEPLOY.md`](DEPLOY.md). Toda configuração vem de variáveis de ambiente: veja `backend/.env.example` e `frontend/.env.example`.
+
 ## 🧭 Próximos passos
 
-- Deploy de demonstração.
 - Recuperação de senha e verificação de e-mail.
 - Convite por link.
 

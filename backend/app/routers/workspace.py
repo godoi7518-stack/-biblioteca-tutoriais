@@ -15,6 +15,7 @@ from app.schemas.workspace import WorkspaceCreate, WorkspaceUpdate, WorkspaceRes
 from app.schemas.membership import MembershipInvite, MemberResponse, MemberRoleUpdate
 from app.models.membership import Membership, MembershipRole
 from app.core.dependencies import get_current_user, get_workspace_membership, require_admin
+from app.core.storage import delete_images
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 
@@ -275,8 +276,6 @@ def leave_workspace(
     db.delete(membership)
     db.commit()
 
-import os
-
 
 @router.delete("/{workspace_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_workspace(
@@ -292,7 +291,7 @@ def delete_workspace(
     embaixo, então a exclusão é feita manualmente aqui, na ordem correta
     (tutorials primeiro, o que já dispara o cascade do banco para steps e
     imagens; depois tabs, memberships, e por fim o workspace). Os arquivos
-    físicos de imagem são coletados antes do commit e removidos do disco
+    de imagem são coletados antes do commit e apagados (disco ou R2)
     só depois que a transação no banco for confirmada com sucesso.
     """
     from app.models.tab import Tab
@@ -301,14 +300,14 @@ def delete_workspace(
 
     tab_ids = [t.id for t in db.query(Tab.id).filter(Tab.workspace_id == workspace_id).all()]
 
-    image_paths = []
+    image_urls = []
     if tab_ids:
         tutorial_ids = [
             t.id for t in db.query(Tutorial.id).filter(Tutorial.tab_id.in_(tab_ids)).all()
         ]
         if tutorial_ids:
-            image_paths = [
-                img.image_url.lstrip("/")
+            image_urls = [
+                img.image_url
                 for img in db.query(TutorialImage).filter(TutorialImage.tutorial_id.in_(tutorial_ids)).all()
             ]
             db.query(Tutorial).filter(Tutorial.id.in_(tutorial_ids)).delete(synchronize_session=False)
@@ -323,6 +322,4 @@ def delete_workspace(
     db.delete(workspace)
     db.commit()
 
-    for path in image_paths:
-        if os.path.exists(path):
-            os.remove(path)
+    delete_images(image_urls)

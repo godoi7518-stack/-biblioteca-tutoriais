@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import MarkdownLite from "../components/MarkdownLite";
 import AccordionSteps from "../components/AccordionSteps";
 import { parseNumberedSteps } from "../utils/helpers";
-import { getTutorial, listSteps, listImages, uploadImage, deleteImage, deleteTutorial, API_URL } from "../services/api";
+import { getTutorial, listSteps, listImages, uploadImage, deleteImage, deleteTutorial, imageUrl } from "../services/api";
 import ImageLightbox from "../components/ImageLightbox";
 import OptionsMenu from "../components/OptionsMenu";
 import TutorialForm from "../components/TutorialForm";
@@ -165,7 +165,7 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
         critical: s.is_critical,
         images: images
           .filter((img) => img.step_id === s.id)
-          .map((img) => ({ ...img, src: `${API_URL}${img.image_url}` })),
+          .map((img) => ({ ...img, src: imageUrl(img.image_url) })),
       }))
     : null;
 
@@ -246,7 +246,7 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
               return (
                 <div className="image-thumb" key={img.id}>
                   <button className="image-thumb-open" onClick={() => openLightbox(unassignedImages, img, galleryLabel)}>
-                    <img src={`${API_URL}${img.image_url}`} alt={img.caption || tutorial.title} />
+                    <img src={imageUrl(img.image_url)} alt={img.caption || tutorial.title} />
                   </button>
                   {isAdmin && (
                     <button className="image-thumb-remove" onClick={() => handleDeleteImage(img.id)}>
@@ -278,7 +278,6 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
         images={lightbox?.images}
         index={lightbox?.index ?? null}
         label={lightbox?.label}
-        apiUrl={API_URL}
         onClose={() => setLightbox(null)}
         onNavigate={(delta) =>
           setLightbox((lb) => lb && { ...lb, index: Math.max(0, Math.min(lb.images.length - 1, lb.index + delta)) })

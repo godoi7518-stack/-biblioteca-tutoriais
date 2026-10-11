@@ -3,7 +3,23 @@
  * nenhum outro arquivo do frontend chama fetch() direto.
  */
 
-export const API_URL = "http://127.0.0.1:8000";
+/**
+ * Endereço da API. Vem da variável VITE_API_URL (arquivo frontend/.env
+ * local, ou configuração do serviço no deploy); sem ela, usa o backend
+ * local. O Vite troca import.meta.env.VITE_API_URL pelo valor na hora do
+ * build: mudou a variável no servidor, precisa gerar o build de novo.
+ */
+export const API_URL = (import.meta.env.VITE_API_URL || "http://127.0.0.1:8000").replace(/\/+$/, "");
+
+/**
+ * Endereço completo de uma imagem para usar no <img src>. image_url pode
+ * ser relativo ("/static/uploads/...", imagens guardadas no disco da API)
+ * ou completo ("https://...", imagens no Cloudflare R2) — ver
+ * backend/app/core/storage.py.
+ */
+export function imageUrl(url) {
+  return /^https?:\/\//.test(url) ? url : `${API_URL}${url}`;
+}
 
 function getToken() {
   return localStorage.getItem("bt_token");

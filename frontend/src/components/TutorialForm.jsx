@@ -15,7 +15,7 @@
  */
 
 import { useState, useRef, useEffect } from "react";
-import { createTutorial, updateTutorial, uploadImage, deleteImage, API_URL } from "../services/api";
+import { createTutorial, updateTutorial, uploadImage, deleteImage, imageUrl } from "../services/api";
 import { PlusIcon } from "./Icons";
 import Modal from "./Modal";
 import { useDialog } from "./DialogProvider";
@@ -603,7 +603,7 @@ export default function TutorialForm({ userId, workspaceId, tabId, tutorial, ste
                         key={img.id}
                         className={"step-image-thumb editable" + (img.removed ? " removed" : "")}
                       >
-                        <img src={`${API_URL}${img.image_url}`} alt={img.caption || `Imagem do passo ${i + 1}`} />
+                        <img src={imageUrl(img.image_url)} alt={img.caption || `Imagem do passo ${i + 1}`} />
                         <button
                           type="button"
                           className="image-thumb-remove"
