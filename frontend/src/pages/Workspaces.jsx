@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { initials } from "../utils/helpers";
 import { PlusIcon } from "../components/Icons";
 import OptionsMenu from "../components/OptionsMenu";
-import { listWorkspaces, createWorkspace, deleteWorkspace } from "../services/api";
+import { listWorkspaces, createWorkspace, renameWorkspace, deleteWorkspace } from "../services/api";
 import { useDialog } from "../components/DialogProvider";
 
 export default function WorkspacesPage({ user, onOpen }) {
@@ -43,6 +43,26 @@ export default function WorkspacesPage({ user, onOpen }) {
       dialog.alert(err.message);
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleRename(ws) {
+    const name = await dialog.prompt({
+      title: "Renomear workspace",
+      label: "Nome do workspace",
+      defaultValue: ws.name,
+      maxLength: 150,
+      confirmLabel: "Salvar",
+    });
+    // O prompt já tira espaços das pontas e não deixa confirmar vazio.
+    if (!name || name === ws.name) return;
+
+    try {
+      const updated = await renameWorkspace(ws.id, name);
+      // Troca só o workspace renomeado na lista, sem recarregar tudo.
+      setWorkspaces((list) => list.map((w) => (w.id === updated.id ? updated : w)));
+    } catch (err) {
+      dialog.alert(err.message);
     }
   }
 
@@ -103,12 +123,15 @@ export default function WorkspacesPage({ user, onOpen }) {
               <div className="tile-icon">{initials(ws.name)}</div>
               <div className="tile-title">{ws.name}</div>
             </button>
-            {/* Só o admin do workspace pode apagá-lo. Esconder o menu é
-                conforto visual; quem barra de verdade é o require_admin. */}
+            {/* Só o admin do workspace pode renomeá-lo ou apagá-lo. Esconder
+                o menu é conforto visual; quem barra de verdade é o require_admin. */}
             {ws.my_role === "admin" && (
               <div className="tile-menu">
                 <OptionsMenu
-                  items={[{ label: "Excluir workspace", danger: true, onClick: () => handleDelete(ws.id) }]}
+                  items={[
+                    { label: "Renomear workspace", onClick: () => handleRename(ws) },
+                    { label: "Excluir workspace", danger: true, onClick: () => handleDelete(ws.id) },
+                  ]}
                 />
               </div>
             )}

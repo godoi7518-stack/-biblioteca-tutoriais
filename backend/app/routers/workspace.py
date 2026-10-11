@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.models.workspace import Workspace
-from app.schemas.workspace import WorkspaceCreate, WorkspaceResponse
+from app.schemas.workspace import WorkspaceCreate, WorkspaceUpdate, WorkspaceResponse
 from app.schemas.membership import MembershipInvite, MemberResponse, MemberRoleUpdate
 from app.models.membership import Membership, MembershipRole
 from app.core.dependencies import get_current_user, get_workspace_membership, require_admin
@@ -88,6 +88,30 @@ def get_workspace(
     if workspace is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace não encontrado")
     return WorkspaceResponse.with_role(workspace, membership.role)
+
+
+@router.patch("/{workspace_id}", response_model=WorkspaceResponse)
+def update_workspace(
+    data: WorkspaceUpdate,
+    workspace_id: int = Path(..., gt=0),
+    admin: Membership = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Renomeia um workspace. Exige ser admin do workspace (qualquer admin,
+    não só o dono: owner_id é só registro de quem criou).
+
+    PATCH (e não PUT) porque altera só os campos enviados — hoje, o nome.
+    Devolve o workspace com o papel de quem chamou (my_role), igual ao GET.
+    """
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if workspace is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Workspace não encontrado")
+
+    if data.name != workspace.name:
+        workspace.name = data.name
+        db.commit()
+        db.refresh(workspace)
+    return WorkspaceResponse.with_role(workspace, admin.role)
 
 
 @router.post("/{workspace_id}/members", response_model=MemberResponse)
