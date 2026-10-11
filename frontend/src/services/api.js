@@ -70,24 +70,53 @@ async function extractErrorMessage(res) {
       return body.detail.map(describeValidationError).join(" ");
     }
   } catch (e) {
-    /* resposta sem corpo JSON */
+    /* resposta sem corpo JSON — cai na mensagem pelo código abaixo */
   }
-  return "Erro na requisição";
+  return messageForStatus(res.status);
+}
+
+/**
+ * Mensagem para quando o backend não mandou um "detail" que dê para
+ * mostrar. O caso mais comum é o erro 500: quando o servidor quebra (ex.:
+ * banco fora do ar), o FastAPI responde com o texto puro
+ * "Internal Server Error", não com JSON.
+ */
+function messageForStatus(status) {
+  if (status >= 500) return "Erro no servidor. Tente novamente em instantes.";
+  if (status === 401) return "Sua sessão expirou. Entre novamente.";
+  if (status === 403) return "Você não tem permissão para fazer isso.";
+  if (status === 404) return "Não encontrado. Talvez tenha sido apagado.";
+  if (status === 413) return "Arquivo grande demais.";
+  if (status === 429) return "Muitas tentativas seguidas. Aguarde um pouco e tente de novo.";
+  return `Não foi possível concluir (erro ${status}).`;
 }
 
 /**
  * fetch() só lança exceção quando nem chega a falar com o servidor
- * (backend desligado, sem rede, CORS). Trocamos esse erro técnico
- * ("Failed to fetch") por uma mensagem clara, com status 0.
+ * (servidor fora do ar, sem internet, CORS). Trocamos esse erro técnico
+ * ("Failed to fetch") por uma mensagem clara, com status 0. O texto é
+ * para quem usa o site, não para quem desenvolve: nada de "backend".
  */
 async function safeFetch(url, options) {
   try {
     return await fetch(url, options);
   } catch (e) {
-    const error = new Error("Não foi possível conectar ao servidor. Verifique se o backend está rodando.");
+    const error = new Error("Não foi possível conectar ao servidor. Verifique sua internet e tente de novo.");
     error.status = 0;
     throw error;
   }
+}
+
+/**
+ * Quem deve ser avisado quando a sessão expira. O App.jsx registra uma
+ * função aqui (setUnauthorizedHandler) que faz logout e mostra o aviso na
+ * tela de login. Assim nenhuma tela precisa checar "err.status === 401"
+ * por conta própria: o tratamento fica num lugar só.
+ */
+let unauthorizedHandler = null;
+
+export function setUnauthorizedHandler(fn) {
+  unauthorizedHandler = fn;
 }
 
 /**
@@ -108,6 +137,12 @@ async function apiFetch(path, options = {}) {
   const res = await safeFetch(`${API_URL}${path}`, { ...options, headers });
 
   if (!res.ok) {
+    // 401 com token enviado = token expirado ou inválido (ver
+    // get_current_user no backend). Sem token, o 401 não é "sessão
+    // expirada" — a pessoa nem estava logada —, então não avisamos.
+    if (res.status === 401 && token && unauthorizedHandler) {
+      unauthorizedHandler();
+    }
     const error = new Error(await extractErrorMessage(res));
     error.status = res.status;
     throw error;
