@@ -210,6 +210,15 @@ export async function createWorkspace(name) {
   });
 }
 
+/** Renomeia um workspace (só admin). Devolve o workspace com my_role. */
+export async function renameWorkspace(workspaceId, name) {
+  return apiFetch(`/workspaces/${workspaceId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+}
+
 export async function listTabs(workspaceId) {
   return apiFetch(`/workspaces/${workspaceId}/tabs`);
 }

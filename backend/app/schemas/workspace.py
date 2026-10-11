@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 
 from app.models.membership import MembershipRole
@@ -8,7 +8,32 @@ class WorkspaceBase(BaseModel):
     name: str
 
 
-class WorkspaceCreate(WorkspaceBase):
+class WorkspaceNameInput(BaseModel):
+    """Nome enviado pelo usuário ao criar ou renomear um workspace.
+
+    As regras ficam só na ENTRADA (e não no WorkspaceBase) para que a
+    resposta nunca falhe por causa de um nome antigo já salvo no banco.
+    Limite de 150 = tamanho da coluna workspaces.name (VARCHAR(150)): sem
+    ele, um nome maior chegava no MySQL e virava erro 500.
+    """
+
+    name: str = Field(min_length=1, max_length=150)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def remover_espacos(cls, valor):
+        """Tira espaços das pontas antes de validar o tamanho — assim
+        "   " não passa como nome preenchido."""
+        return valor.strip() if isinstance(valor, str) else valor
+
+
+class WorkspaceCreate(WorkspaceNameInput):
+    pass
+
+
+class WorkspaceUpdate(WorkspaceNameInput):
+    """Corpo do PATCH /workspaces/{id}. Hoje só o nome é editável; se
+    surgirem outros campos, entram aqui como opcionais."""
     pass
 
 
