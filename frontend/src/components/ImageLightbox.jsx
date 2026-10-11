@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { ArrowLeftIcon, ArrowRightIcon } from "./Icons";
+import { imageUrl } from "../services/api";
 
 /**
  * Modal de imagem em tela cheia, com navegação entre imagens de UM grupo
@@ -8,7 +9,7 @@ import { ArrowLeftIcon, ArrowRightIcon } from "./Icons";
  * existe anterior/próxima. label diz de onde é a imagem ("Passo 2",
  * "Imagens gerais"). index null (ou images vazio) = fechado.
  */
-export default function ImageLightbox({ images, index, label, apiUrl, onClose, onNavigate }) {
+export default function ImageLightbox({ images, index, label, onClose, onNavigate }) {
   const image = images && index != null ? images[index] : null;
 
   // Atalhos de teclado: Escape fecha, setas navegam. Só registra o
@@ -49,7 +50,7 @@ export default function ImageLightbox({ images, index, label, apiUrl, onClose, o
       )}
 
       <img
-        src={`${apiUrl}${image.image_url}`}
+        src={imageUrl(image.image_url)}
         alt={image.caption || ""}
         onClick={(e) => e.stopPropagation()}
       />

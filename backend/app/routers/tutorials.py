@@ -5,8 +5,6 @@ em `content`) ou "structured" (uma sequência de TutorialStep, cada um
 podendo ser marcado como crítico).
 """
 
-import os
-
 from fastapi import APIRouter, Depends, HTTPException, status, Path
 from sqlalchemy.orm import Session
 
@@ -21,6 +19,7 @@ from app.schemas.tutorial import (
     TutorialStepCreate, TutorialStepResponse, TutorialStepInput,
 )
 from app.core.dependencies import get_current_user, get_workspace_membership, require_admin
+from app.core.storage import delete_images
 from app.routers.tabs import get_tab_or_404
 
 router = APIRouter(prefix="/workspaces/{workspace_id}/tabs/{tab_id}/tutorials", tags=["tutorials"])
@@ -43,16 +42,10 @@ def _check_body_for_type(content_type: str, content: str | None, steps: list | N
             _bad_request("Tutorial passo a passo precisa de pelo menos um passo")
 
 
-def _image_paths(db: Session, *filters) -> list[str]:
-    """Caminhos no disco das imagens que casam com os filtros. Usado para
-    apagar os arquivos DEPOIS do commit (se o commit falhar, nada some)."""
-    return [img.image_url.lstrip("/") for img in db.query(TutorialImage).filter(*filters).all()]
-
-
-def _remove_files(paths: list[str]):
-    for path in paths:
-        if os.path.exists(path):
-            os.remove(path)
+def _image_urls(db: Session, *filters) -> list[str]:
+    """URLs das imagens que casam com os filtros. Usado para apagar os
+    arquivos DEPOIS do commit (se o commit falhar, nada some)."""
+    return [img.image_url for img in db.query(TutorialImage).filter(*filters).all()]
 
 
 def _sync_steps(db: Session, tutorial_id: int, items: list[TutorialStepInput]) -> list[str]:
@@ -81,7 +74,7 @@ def _sync_steps(db: Session, tutorial_id: int, items: list[TutorialStepInput]) -
     removed_ids = [step_id for step_id in existing if step_id not in sent_ids]
     removed_files = []
     if removed_ids:
-        removed_files = _image_paths(db, TutorialImage.step_id.in_(removed_ids))
+        removed_files = _image_urls(db, TutorialImage.step_id.in_(removed_ids))
         db.query(TutorialStep).filter(TutorialStep.id.in_(removed_ids)).delete(synchronize_session=False)
 
     for number, item in enumerate(items, start=1):
@@ -216,7 +209,7 @@ def update_tutorial(
         removed_files = _sync_steps(db, tutorial.id, data.steps)
 
     db.commit()
-    _remove_files(removed_files)
+    delete_images(removed_files)
     db.refresh(tutorial)
     return _detail_response(db, tutorial)
 
@@ -237,10 +230,10 @@ def delete_tutorial(
     """
     get_tab_or_404(workspace_id, tab_id, db)
     tutorial = get_tutorial_or_404(tab_id, tutorial_id, db)
-    files = _image_paths(db, TutorialImage.tutorial_id == tutorial.id)
+    files = _image_urls(db, TutorialImage.tutorial_id == tutorial.id)
     db.delete(tutorial)
     db.commit()
-    _remove_files(files)
+    delete_images(files)
 
 
 @router.post("/{tutorial_id}/steps", response_model=TutorialStepResponse)
