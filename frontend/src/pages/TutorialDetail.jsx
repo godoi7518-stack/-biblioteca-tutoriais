@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import MarkdownLite from "../components/MarkdownLite";
 import AccordionSteps from "../components/AccordionSteps";
 import { parseNumberedSteps } from "../utils/helpers";
-import { getTutorial, listSteps, listImages, uploadImage, deleteImage, deleteTutorial, imageUrl } from "../services/api";
+import { getTutorial, listImages, uploadImage, deleteImage, deleteTutorial, imageUrl } from "../services/api";
 import ImageLightbox from "../components/ImageLightbox";
 import OptionsMenu from "../components/OptionsMenu";
 import TutorialForm from "../components/TutorialForm";
@@ -36,14 +36,14 @@ export default function TutorialDetailPage({ user, workspace, tabId, tutorialId,
     setLoading(true);
     setError("");
 
+    // O tutorial já vem com os passos (data.steps): uma requisição só, em
+    // vez de buscar o tutorial e depois pedir /steps em fila.
     getTutorial(workspace.id, tabId, tutorialId)
       .then((data) => {
         if (cancelled) return;
         setTutorial(data);
         if (data.content_type === "structured") {
-          return listSteps(workspace.id, tabId, tutorialId).then((s) => {
-            if (!cancelled) setSteps(s);
-          });
+          setSteps(data.steps || []);
         }
       })
       .catch((err) => {

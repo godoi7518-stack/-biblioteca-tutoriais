@@ -90,9 +90,9 @@ class TutorialStepResponse(TutorialStepBase):
 
 
 class TutorialDetailResponse(TutorialResponse):
-    """Resposta de criar/editar: o tutorial com os passos já salvos, na
-    ordem. O frontend precisa dos ids dos passos para enviar as imagens de
-    cada um logo em seguida."""
+    """Tutorial com os passos já salvos, na ordem. Usada ao abrir (GET), ao
+    criar e ao editar. Ao criar/editar, o frontend precisa dos ids dos
+    passos para enviar as imagens de cada um logo em seguida."""
 
     steps: list[TutorialStepResponse] = []
 

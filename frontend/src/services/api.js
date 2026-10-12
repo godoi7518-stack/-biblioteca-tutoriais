@@ -291,6 +291,7 @@ export async function updateTutorial(workspaceId, tabId, tutorialId, data) {
   });
 }
 
+/** Um tutorial já com os passos em ordem (data.steps; vazio no texto corrido). */
 export async function getTutorial(workspaceId, tabId, tutorialId) {
   return apiFetch(`/workspaces/${workspaceId}/tabs/${tabId}/tutorials/${tutorialId}`);
 }
