@@ -66,7 +66,7 @@ A ordem importa: banco → imagens → backend → frontend → voltar no backen
 4. Ainda em **Environment**, em **Secret Files**, crie um arquivo chamado `ca.pem` e cole o conteúdo do `ca.pem` da Aiven. O Render o disponibiliza em `/etc/secrets/ca.pem`, que é o caminho do `DB_SSL_CA`.
 5. Crie o serviço e espere o deploy. Teste abrindo `https://SEU-BACKEND.onrender.com/` (deve responder "API da Biblioteca de Tutoriais rodando") e `/docs`.
 
-Se a API não subir, o log do Render mostra o motivo. Variável faltando aparece como erro de validação com o nome dela; armazenamento incompleto aparece como `STORAGE_BACKEND=r2 exige: ...`.
+Se a API não subir, o log do Render mostra o motivo. Variável faltando aparece como erro de validação com o nome dela; armazenamento incompleto aparece como `STORAGE_BACKEND=r2 exige: ...`; certificado faltando aparece como `DB_SSL_CA aponta para ..., mas esse arquivo não existe` (o Secret File `ca.pem` precisa estar no serviço do **backend**, não no do frontend).
 
 ## 4. Frontend (Render, Static Site)
 

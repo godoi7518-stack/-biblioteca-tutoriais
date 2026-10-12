@@ -6,6 +6,8 @@ API nem sobe, e o erro diz qual está faltando.
 Lista completa com exemplos: backend/.env.example.
 """
 
+import os
+
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
@@ -71,6 +73,23 @@ class Settings(BaseSettings):
             if faltando:
                 raise ValueError(f"STORAGE_BACKEND=r2 exige: {', '.join(faltando)}")
             self.r2_public_url = self.r2_public_url.rstrip("/")
+        return self
+
+    @model_validator(mode="after")
+    def conferir_certificado_do_banco(self):
+        """Falha ao subir a API se DB_SSL_CA apontar para um arquivo que não
+        existe. Sem isto a API subia normalmente e só quebrava na primeira
+        consulta ao banco (erro 500, que o navegador mostra como erro de
+        CORS) — foi o que aconteceu no primeiro deploy."""
+        if self.db_ssl_ca:
+            self.db_ssl_ca = self.db_ssl_ca.strip()
+            if not os.path.isfile(self.db_ssl_ca):
+                raise ValueError(
+                    f"DB_SSL_CA aponta para '{self.db_ssl_ca}', mas esse arquivo não existe. "
+                    "No Render: serviço do backend → Environment → Secret Files → arquivo "
+                    "'ca.pem' com o certificado da Aiven (e DB_SSL_CA=/etc/secrets/ca.pem). "
+                    "No computador: deixe DB_SSL_CA vazio para o MySQL local."
+                )
         return self
 
 

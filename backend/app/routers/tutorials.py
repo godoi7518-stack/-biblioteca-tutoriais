@@ -166,7 +166,7 @@ def get_tutorial_or_404(tab_id: int, tutorial_id: int, db: Session) -> Tutorial:
     return tutorial
 
 
-@router.get("/{tutorial_id}", response_model=TutorialResponse)
+@router.get("/{tutorial_id}", response_model=TutorialDetailResponse)
 def get_tutorial(
     workspace_id: int,
     tab_id: int,
@@ -174,9 +174,16 @@ def get_tutorial(
     membership: Membership = Depends(get_workspace_membership),
     db: Session = Depends(get_db),
 ):
-    """Retorna um tutorial específico (sem os steps — ver /steps). Exige ser membro do workspace."""
+    """Retorna um tutorial específico já com os passos, em ordem (lista
+    vazia em tutorial de texto corrido). Exige ser membro do workspace.
+
+    Os passos vêm junto para a tela abrir com UMA requisição: antes ela
+    buscava o tutorial e só depois pedia /steps, e cada ida ao servidor
+    repete as consultas de login e permissão.
+    """
     get_tab_or_404(workspace_id, tab_id, db)
-    return get_tutorial_or_404(tab_id, tutorial_id, db)
+    tutorial = get_tutorial_or_404(tab_id, tutorial_id, db)
+    return _detail_response(db, tutorial)
 
 
 @router.put("/{tutorial_id}", response_model=TutorialDetailResponse)
